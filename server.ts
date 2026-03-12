@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import crypto from "crypto";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -53,6 +54,16 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+  let supabase: SupabaseClient | null = null;
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("[Server] Supabase enabled");
+  } else {
+    console.log("[Server] Supabase not configured, skipping cloud persistence");
+  }
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
@@ -287,42 +298,40 @@ async function startServer() {
         JSON 结构要求:
         {
           "advice": {
-            "stateSummary": "三句话总结，不要带序号：1. 现状定性（如：您正处于...的关口）；2. 核心痛点（如：主要面临...的挑战）；3. 积极展望（如：通过...将迎来转机）。每句不超过30字。",
+            "stateSummary": "三句话总结，每句不超过30字。",
             "riskReminder": "一句话风险提示",
             "risks": [
-              {"type": "health", "level": "low|medium|high", "label": "4字以内标签", "description": "基于真实过往案例可能发生的高风险描述（20字以内）", "adjustment": "具体的解决方案与注意点（15字以内）", "score": 0-100},
-              {"type": "relationship", "level": "low|medium|high", "label": "4字以内标签", "description": "基于真实过往案例可能发生的高风险描述（20字以内）", "adjustment": "具体的解决方案与注意点（15字以内）", "score": 0-100},
-              {"type": "finance", "level": "low|medium|high", "label": "4字以内标签", "description": "基于真实过往案例可能发生的高风险描述（20字以内）", "adjustment": "具体的解决方案与注意点（15字以内）", "score": 0-100},
-              {"type": "psychology", "level": "low|medium|high", "label": "4字以内标签", "description": "基于真实过往案例可能发生的高风险描述（20字以内）", "adjustment": "具体的解决方案与注意点（15字以内）", "score": 0-100}
+              {"type": "health", "level": "low|medium|high", "label": "4字以内标签", "description": "20字以内", "adjustment": "15字以内", "score": 0-100},
+              {"type": "finance", "level": "low|medium|high", "label": "4字以内标签", "description": "20字以内", "adjustment": "15字以内", "score": 0-100}
             ],
             "actions": {
-              "today": "具体行动指令（如：'今晚8点...'），包含时间、地点、动作三要素，不少于30字。",
-              "thisWeek": "阶段性任务（如：'完成3次...'），包含频次、目标、预期结果，不少于30字。",
-              "thisMonth": "长期规划（如：'建立...习惯'），包含里程碑节点、评估标准，不少于30字。"
+              "today": "30字以内行动指令",
+              "thisWeek": "30字以内阶段任务",
+              "thisMonth": "30字以内长期规划"
             },
-            "communicationTip": "...",
-            "resourceSuggestion": "...",
-            "encouragement": "一句话富有哲理且温暖的鼓励（30字以内，不带引号）",
+            "communicationTip": "30字以内建议话术",
+            "resourceSuggestion": "30字以内资源推荐",
+            "encouragement": "30字以内鼓励",
             "lifestyleAdvice": {
-              "moodRegulation": "具体的心理调节建议（如：'每天花10分钟冥想...'）",
-              "sleepImprovement": "改善睡眠的具体方法（如：'睡前喝杯热牛奶...'）",
-              "recreation": "推荐的休闲活动（如：'尝试园艺...'）"
+              "moodRegulation": "15字建议",
+              "sleepImprovement": "15字建议",
+              "recreation": "15字建议"
             },
             "decisionSimulation": {
-              "pathA": {"label": "...", "trend": "...", "risks": ["..."], "actions": ["..."], "emotionalImpact": "..."},
-              "pathB": {"label": "...", "trend": "...", "risks": ["..."], "actions": ["..."], "emotionalImpact": "..."}
+              "pathA": {"label": "4字标签", "trend": "15字趋势", "risks": ["10字风险"], "actions": ["10字行动"], "emotionalImpact": "10字影响"},
+              "pathB": {"label": "4字标签", "trend": "15字趋势", "risks": ["10字风险"], "actions": ["10字行动"], "emotionalImpact": "10字影响"}
             },
-            "perspectives": [{"role": "...", "psychology": "...", "suggestion": "..."}],
+            "perspectives": [{"role": "角色", "psychology": "20字心理分析", "suggestion": "20字建议"}],
             "caseStudy": {
-              "title": "真实案例标题（如：李叔叔的'退而不休'计划）",
-              "story": "100字左右的真实案例故事，描述一个面临相似困境的人是如何走出困境的。",
-              "expertComment": "专家对该案例的50字点评，提炼核心成功要素。"
+              "title": "案例标题",
+              "story": "50字以内案例故事",
+              "expertComment": "30字以内点评"
             }
           },
-          "memoryUpdate": {"newTags": ["..."], "anxietyPoints": ["..."]},
-          "followUpQuestions": ["...", "...", "...", "..."],
+          "memoryUpdate": {"newTags": ["标签"], "anxietyPoints": ["痛点"]},
+          "followUpQuestions": ["问题1", "问题2", "问题3"],
           "resonanceScore": 0-100,
-          "soulSignature": "一句极具洞察力、直击灵魂深处的短句（12字以内，如：'心安即是归处'）"
+          "soulSignature": "10字以内短句"
         }
       `;
 
@@ -339,8 +348,25 @@ async function startServer() {
         }
       }
 
+      // Validate structure
+      if (!finalResult || !finalResult.advice) {
+        console.error("AI response missing 'advice' field, using fallback");
+        throw new Error("AI response malformed");
+      }
+
       // Store in cache
       setCache(cacheKey, finalResult);
+
+      if (supabase) {
+        const record = {
+          theme,
+          input,
+          profile,
+          result: finalResult,
+          resonance_score: finalResult?.resonanceScore ?? null
+        };
+        void supabase.from("consultations").insert(record);
+      }
 
       console.log("[AI Simulation] Sending to client:", JSON.stringify(finalResult, null, 2));
       res.json(finalResult);
@@ -350,7 +376,12 @@ async function startServer() {
       const presetMatch = Object.keys(PRESET_RESPONSES).find(k => input.includes(k) || k.includes(input));
       if (presetMatch) {
         console.log(`[AI Simulation] Fallback to Preset Response for: ${presetMatch}`);
-        return res.json(PRESET_RESPONSES[presetMatch]);
+        const resp = PRESET_RESPONSES[presetMatch];
+        if (supabase) {
+          const record = { theme, input, profile, result: resp, resonance_score: resp?.resonanceScore ?? null };
+          void supabase.from("consultations").insert(record);
+        }
+        return res.json(resp);
       }
       
       // Ultimate Fallback: Return a generic valid structure so the UI doesn't break
@@ -370,6 +401,10 @@ async function startServer() {
         },
         resonanceScore: 80
       };
+      if (supabase) {
+        const record = { theme, input, profile, result: genericFallback, resonance_score: genericFallback?.resonanceScore ?? null };
+        void supabase.from("consultations").insert(record);
+      }
       return res.json(genericFallback);
       
       // res.status(500).json({ error: error.message || "生成模拟结果失败" });

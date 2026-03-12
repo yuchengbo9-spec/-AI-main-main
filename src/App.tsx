@@ -29,11 +29,15 @@ import {
   MessageCircle,
   Users,
   Baby,
-  Activity
+  Activity,
+  Mic,
+  MicOff,
+  Volume2
 } from 'lucide-react';
 import { generateLifeSimulation, generateRecommendedQuestions } from './services/ai';
 import { SimulationResult, LifeTheme, UserProfile, RecommendedQuestion, UserMemory } from './types';
 import { MemoryService } from './services/memory';
+import { useSpeech } from './hooks/useSpeech';
 import ProfilingForm from './components/ProfilingForm';
 import QuestionRecommender from './components/QuestionRecommender';
 import StructuredResult from './components/StructuredResult';
@@ -101,6 +105,8 @@ const MOCK_CONFESSIONS = [
 
 type AppStep = 'landing' | 'payment' | 'profile' | 'theme' | 'questions' | 'input' | 'loading' | 'result';
 
+import { supabase } from './services/auth';
+
 const PRESET_QUESTIONS: Record<LifeTheme, string[]> = {
   health: [
     "最近体检指标有异常，该如何调整生活习惯？", "总是失眠多梦，有没有不吃药的缓解方法？", "想开始运动但怕伤膝盖，50岁后怎么练？",
@@ -164,6 +170,8 @@ const PRESET_QUESTIONS: Record<LifeTheme, string[]> = {
   ]
 };
 
+import { Brain, HeartHandshake } from 'lucide-react';
+
 export default function App() {
   const [step, setStep] = useState<AppStep>('landing');
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -178,6 +186,13 @@ export default function App() {
 
   const [questionPage, setQuestionPage] = useState(0);
   const [isPaid, setIsPaid] = useState(false);
+  const { isListening, transcript, startListening, stopListening, isSpeaking, speak, stopSpeaking } = useSpeech();
+
+  useEffect(() => {
+    if (transcript && step === 'input') {
+      setUserInput(prev => prev ? prev + ' ' + transcript : transcript);
+    }
+  }, [transcript, step]);
 
   // Input persistence
   useEffect(() => {
@@ -347,21 +362,22 @@ export default function App() {
             <DynamicLogo theme={selectedTheme} size="sm" />
             <span className="font-semibold text-lg tracking-tight">家庭守护 AI 顾问</span>
           </div>
-          {step !== 'landing' && (
-            <button 
-              onClick={reset}
-              className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              重新开始
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {step !== 'landing' && (
+              <button 
+                onClick={reset}
+                className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                重新开始
+              </button>
+            )}
+            {/* Auth Buttons Removed as requested */}
+          </div>
         </div>
       </header>
 
-      <main className="pt-28 pb-20 px-6 max-w-5xl mx-auto">
-
-
+      <main className="pt-28 pb-20 px-6 max-w-5xl mx-auto min-h-screen">
         <AnimatePresence mode="wait">
           {step === 'landing' && (
             <motion.div 
@@ -369,82 +385,54 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="max-w-5xl mx-auto text-center space-y-16"
+              className="text-center space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-1000"
             >
-              <div className="space-y-8">
-                {memory.sessionCount > 0 && (
-                  <motion.div 
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="space-y-4 mb-12 hidden"
-                  >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-full text-xs font-black uppercase tracking-[0.3em] border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                      <Sparkles className="w-3 h-3" />
-                      系统已深度学习你的偏好 (第 {memory.sessionCount} 次咨询)
-                    </div>
-                    <p className="text-2xl md:text-3xl font-serif italic text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                      “好久不见。距离我们上次探讨那些关于
-                      <span className="text-slate-900 font-bold not-italic mx-1">
-                        {memory.tags.filter(t => t.category === 'theme').slice(0, 2).map(t => t.name).join('与') || '生活'}
-                      </span>
-                      的话题，已经过去了一些时日。希望这段时间里，您的内心多了一份从容。”
-                    </p>
-                  </motion.div>
-                )}
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-full text-xs font-black uppercase tracking-[0.3em] border border-slate-200">
-                  <Sparkles className="w-4 h-4" />
-                  <span>AI_ADVISOR_V2.0 // 家庭守护系统</span>
+              <div className="space-y-8 relative">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-400/10 rounded-full blur-[120px] -z-10" />
+                
+                <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 border border-slate-200 shadow-sm backdrop-blur-md mb-8 hover:scale-105 transition-transform cursor-default">
+                  <Sparkles className="w-5 h-5 text-emerald-500 animate-pulse" />
+                  <span className="text-sm font-semibold text-slate-600 tracking-wide">专为 30+ 人群打造的家庭 AI 顾问</span>
                 </div>
-                <h1 className="text-5xl md:text-8xl font-black text-slate-900 leading-[1.1] tracking-tight text-gradient">
-                  让生活更 <span className="text-emerald-500 relative inline-block">从容<div className="absolute -bottom-2 left-0 w-full h-3 bg-emerald-500/20 -skew-x-12" /></span><br />
-                  给家人更稳的守护
+                
+                <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 leading-[1.1]">
+                  用 <span className="text-transparent bg-clip-text bg-gradient-to-br from-emerald-600 to-teal-500 animate-gradient-x">AI 智慧</span><br />
+                  守护您的<span className="relative whitespace-nowrap">
+                    <span className="relative z-10">家庭幸福</span>
+                    <span className="absolute bottom-2 left-0 w-full h-4 bg-emerald-200/50 -z-10 -rotate-1"></span>
+                  </span>
                 </h1>
                 
-                {/* Social Proof Badge */}
-                <div className="flex items-center justify-center gap-3 animate-fade-in-up">
-                  <div className="flex -space-x-3">
+                {/* Social Proof Badge - RESTORED & ENHANCED */}
+                <div className="flex items-center justify-center gap-4 animate-in fade-in zoom-in duration-700 delay-200">
+                  <div className="flex -space-x-4 hover:space-x-1 transition-all duration-300">
                     {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i * 123}`} alt="User" className="w-full h-full" />
+                      <div key={i} className="w-10 h-10 rounded-full border-[3px] border-white bg-slate-100 overflow-hidden shadow-lg hover:scale-110 hover:z-10 transition-all relative group cursor-help">
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i * 888}&backgroundColor=b6e3f4`} alt="User" className="w-full h-full" />
                       </div>
                     ))}
-                    <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">
-                      +999
+                    <div className="w-10 h-10 rounded-full border-[3px] border-white bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold shadow-lg z-10">
+                      +1w
                     </div>
                   </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-1">
-                      <span className="text-emerald-600 font-black text-lg">999+</span>
-                      <span className="text-slate-600 font-bold text-sm">家庭的选择</span>
+                  <div className="text-left space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex text-amber-400">
+                        {[1,2,3,4,5].map(i => <svg key={i} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>)}
+                      </div>
+                      <span className="text-slate-900 font-bold text-sm">4.9/5.0</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">累计生成 10W+ 份守护建议</p>
+                    <p className="text-xs text-slate-500 font-medium">已为 <span className="text-emerald-600 font-bold">12,508</span> 个家庭提供咨询</p>
                   </div>
                 </div>
 
-                <p className="text-xl md:text-2xl text-slate-500 leading-relaxed max-w-3xl mx-auto font-medium">
-                  围绕健康、子女、生意与压力，提供结构化建议与可执行清单。<br />
-                  <span className="text-slate-400 text-lg italic font-normal">被理解 · 可落地 · 有边界</span>
+                <p className="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
+                  不仅仅是聊天，更是您身边的数字家庭医生。<br/>
+                  <span className="text-slate-400 text-lg mt-2 block">深度解析 • 风险预警 • 情感共鸣</span>
                 </p>
               </div>
 
               <MarqueeQuestions />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-                {[
-                  { icon: <AlertCircle className="w-5 h-5 text-rose-500" />, title: "免责说明", desc: "AI 生成建议仅供参考，不作为专业医疗或法律决策依据", color: "from-rose-500/10 to-transparent" },
-                  { icon: <ShieldCheck className="w-5 h-5 text-blue-500" />, title: "隐私安全", desc: "严格遵守隐私协议，不采集敏感个人信息，数据仅供单次分析", color: "from-blue-500/10 to-transparent" },
-                  { icon: <Cpu className="w-5 h-5 text-amber-500" />, title: "算法逻辑", desc: "基于大语言模型与家庭场景库，针对特定年龄段进行逻辑推演", color: "from-amber-500/10 to-transparent" }
-                ].map((item, i) => (
-                  <div key={i} className={`p-8 glass-card rounded-[2.5rem] space-y-4 group hover:-translate-y-1 transition-all duration-500 relative overflow-hidden`}>
-                    <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
-                    <div className="relative z-10">
-                      <div className="p-3 bg-slate-50 rounded-2xl w-fit shadow-inner group-hover:scale-110 transition-transform">{item.icon}</div>
-                      <h3 className="font-bold text-lg mt-4">{item.title}</h3>
-                      <p className="text-sm text-slate-500 leading-relaxed font-medium">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
 
               <button
                 onClick={() => setStep('profile')}
@@ -676,9 +664,24 @@ export default function App() {
                 <textarea
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
-                  placeholder="在这里输入你的想法..."
+                  placeholder="在这里输入你的想法，或点击麦克风直接说话..."
                   className="w-full h-64 p-10 rounded-[2.5rem] border border-slate-100 bg-white/50 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all resize-none text-xl leading-relaxed shadow-inner placeholder:text-slate-300"
                 />
+                <div className="absolute bottom-10 left-10 flex items-center gap-4">
+                  <button
+                    onClick={isListening ? stopListening : startListening}
+                    className={`p-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 ${
+                      isListening 
+                        ? 'bg-rose-500 text-white animate-pulse' 
+                        : 'bg-white text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                  >
+                    {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                    <span className="text-xs font-bold uppercase tracking-wider hidden sm:block">
+                      {isListening ? '点击停止' : '语音输入'}
+                    </span>
+                  </button>
+                </div>
                 <div className="absolute bottom-10 right-10 flex items-center gap-4">
                   <div className="px-4 py-2 bg-slate-50 rounded-full text-xs text-slate-400 font-mono border border-slate-100">
                     {userInput.length} 字
@@ -769,14 +772,38 @@ export default function App() {
 
       {/* Footer */}
       <footer className="py-16 border-t border-slate-100 bg-white">
-        <div className="max-w-5xl mx-auto px-6 text-center space-y-6">
-          <div className="flex items-center justify-center gap-3 text-slate-300">
-            <ShieldAlert className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-[0.2em]">家庭守护 AI 顾问</span>
+        <div className="max-w-5xl mx-auto px-6 text-center space-y-12">
+          {/* Unified Feature Cell */}
+          <div className="glass-card rounded-[2.5rem] overflow-hidden border-slate-200/60 shadow-xl shadow-slate-200/20">
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-slate-100">
+              {[
+                { icon: <Brain className="w-5 h-5 text-emerald-500" />, title: "深度思维", desc: "多维分析" },
+                { icon: <ShieldCheck className="w-5 h-5 text-blue-500" />, title: "隐私加密", desc: "安全保障" },
+                { icon: <HeartHandshake className="w-5 h-5 text-rose-500" />, title: "情感陪伴", desc: "情绪理解" },
+                { icon: <AlertCircle className="w-5 h-5 text-amber-500" />, title: "免责说明", desc: "建议仅供参考" }
+              ].map((item, i) => (
+                <div key={i} className="p-10 group hover:bg-slate-50/50 transition-colors text-center relative overflow-hidden flex flex-col items-center justify-center">
+                  <div className="relative z-10 space-y-4 flex flex-col items-center">
+                    <div className="p-3 bg-white rounded-2xl w-fit shadow-sm group-hover:scale-110 transition-transform border border-slate-50 [&_svg]:w-6 [&_svg]:h-6">{item.icon}</div>
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-900 tracking-tight">{item.title}</h3>
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1 opacity-70">{item.desc}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="max-w-2xl mx-auto text-[10px] text-slate-400 leading-relaxed space-y-2">
-            <p>免责声明：本系统提供的所有建议均为 AI 生成，仅供参考。不构成任何医疗诊断、法律意见或投资建议。如遇紧急情况或涉及专业决策，请务必咨询相关领域的持证专业人士。</p>
-            <p>© 2026 家庭守护 AI 顾问 · 线下扫码体验版</p>
+
+          <div className="space-y-6 pt-4">
+            <div className="flex items-center justify-center gap-3 text-slate-300">
+              <ShieldAlert className="w-5 h-5" />
+              <span className="text-xs font-bold uppercase tracking-[0.2em]">家庭守护 AI 顾问</span>
+            </div>
+            <div className="max-w-2xl mx-auto text-[10px] text-slate-400 leading-relaxed space-y-2">
+              <p>免责声明：本系统提供的所有建议均为 AI 生成，仅供参考。不构成任何医疗诊断、法律意见或投资建议。如遇紧急情况或涉及专业决策，请务必咨询相关领域的持证专业人士。</p>
+              <p>© 2026 家庭守护 AI 顾问 · 线下扫码体验版</p>
+            </div>
           </div>
         </div>
       </footer>

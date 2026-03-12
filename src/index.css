@@ -5,28 +5,42 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", serif;
   --font-classic: "Cormorant Garamond", serif;
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 3s ease infinite;
+  }
+
+  @keyframes gradient-x {
+    0% { background-position: 0% 50% }
+    50% { background-position: 100% 50% }
+    100% { background-position: 0% 50% }
+  }
 }
 
 @layer base {
   body {
-    @apply bg-[#FDFCFB] text-slate-900 antialiased overflow-x-hidden;
+    @apply bg-[#F8FAFC] text-slate-900 antialiased overflow-x-hidden text-[18px] leading-relaxed;
   }
 }
 
 @layer utilities {
   .mesh-bg {
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(244, 63, 94, 0.05) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.05) 0px, transparent 50%);
+    background: 
+      radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.08) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 40%),
+      radial-gradient(at 50% 50%, rgba(248, 250, 252, 1) 0px, transparent 100%);
+    background-attachment: fixed;
   }
   
   .glass-card {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+    @apply bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.02)] ring-1 ring-slate-900/5;
+  }
+
+  .glass-card-dark {
+    @apply bg-slate-900/80 backdrop-blur-2xl border border-slate-800/50 shadow-2xl;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900;
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900;
   }
 }

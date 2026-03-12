@@ -44,7 +44,13 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
   return (
     <div className="max-w-4xl mx-auto space-y-10">
       {/* 1. Core Action Plan - The "Meat" first */}
-      <section className="space-y-8 relative">
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="space-y-8 relative"
+      >
         <div className="flex items-center justify-between px-6">
           <div className="flex items-center gap-4 text-emerald-600">
             <div className="p-2 bg-emerald-500/10 rounded-xl">
@@ -66,10 +72,11 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
           ].map((item, i) => (
             <motion.div 
               key={i} 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={`p-10 rounded-[3rem] border ${item.color} space-y-6 relative overflow-hidden group hover:scale-[1.03] transition-all duration-500`}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.15, type: "spring", stiffness: 100 }}
+              whileHover={{ scale: 1.03, y: -5 }}
+              className={`p-10 rounded-[3rem] border ${item.color} space-y-6 relative overflow-hidden group transition-all duration-500`}
             >
               <div className="flex items-center justify-between">
                 <div className={`px-5 py-2 rounded-full text-xl font-black uppercase tracking-widest ${i === 0 ? 'bg-white/20 text-white' : 'bg-slate-100/50 text-slate-500'}`}>
@@ -103,117 +110,147 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
             </button>
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* 2. Quick Status Header - ALWAYS VISIBLE (FREE HOOK) */}
-      <div className="glass-card rounded-[4rem] overflow-hidden border-white/40">
-        <div className="p-12 md:p-16 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 blur-[150px] rounded-full -translate-y-1/2 translate-x-1/2 animate-pulse" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2 animate-pulse" />
+      <div className="glass-card rounded-[4rem] overflow-hidden border-white/40 shadow-2xl shadow-slate-200/50">
+        <div className="p-10 md:p-14 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 animate-pulse" />
           
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-12">
-            <div className="flex flex-col md:flex-row md:items-center gap-12">
-              <div className="p-4 bg-white/5 rounded-[2.5rem] border border-white/10 backdrop-blur-md">
-                <DynamicLogo theme={theme} size="lg" className="shrink-0" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
+            <div className="flex flex-col gap-6 max-w-2xl">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+                  <DynamicLogo theme={theme} size="md" className="shrink-0" />
+                </div>
+                <div className="flex items-center gap-2 text-emerald-400 font-black tracking-[0.2em] uppercase text-[10px] bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>AI Guardian Message</span>
+                </div>
               </div>
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 text-emerald-400 font-black tracking-[0.3em] uppercase text-xs bg-emerald-500/10 w-fit px-4 py-1.5 rounded-full border border-emerald-500/20">
-                  <ShieldCheck className="w-5 h-5" />
-                  <span>AI 守护寄语</span>
-                </div>
-                <div className="space-y-4 font-black leading-tight tracking-tight">
-                  {advice.stateSummary.split('\n').map((line, idx) => (
-                    <p key={idx} className={`
-                      ${idx === 0 ? 'text-2xl md:text-3xl text-white' : ''}
-                      ${idx === 1 ? 'text-xl md:text-2xl text-emerald-200' : ''}
-                      ${idx === 2 ? 'text-lg md:text-xl text-slate-400 font-medium' : ''}
-                    `}>
-                      {line}
-                    </p>
-                  ))}
-                </div>
+              
+              <div className="space-y-4">
+                 <h2 className="text-2xl md:text-4xl font-black leading-tight tracking-tight text-white">
+                   {advice.stateSummary.split('\n')[0]}
+                 </h2>
+                 <p className="text-lg text-slate-300 font-medium leading-relaxed">
+                   {advice.stateSummary.split('\n').slice(1).join(' ')}
+                 </p>
               </div>
             </div>
             
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className="shrink-0"
             >
               <SoulResonanceDisplay score={resonanceScore} />
             </motion.div>
           </div>
         </div>
 
-        <div className="p-12 md:p-16 space-y-16">
-          {/* Risk Indicators - PARTIALLY BLURRED IF NOT PAID */}
-          <section className="space-y-8 relative">
-            <div className="flex items-center gap-3 text-slate-400 px-4">
-              <AlertTriangle className="w-5 h-5" />
-              <span className="text-sm font-black uppercase tracking-[0.2em]">关键风险指标</span>
-            </div>
-            
-            <div className={!isPaid ? 'blur-sm select-none pointer-events-none opacity-80' : ''}>
-              <RiskDashboard risks={advice.risks} stressHistory={stressHistory} />
-            </div>
-
-            {!isPaid && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center">
-                <div className="p-6 bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/50 text-center space-y-4 max-w-sm mx-auto">
-                  <div className="p-3 bg-amber-100 text-amber-600 rounded-full w-fit mx-auto">
-                    <AlertTriangle className="w-6 h-6" />
+          <div className="p-8 md:p-12 space-y-16">
+            {/* Risk Indicators - PARTIALLY BLURRED IF NOT PAID */}
+            <section className="space-y-8 relative">
+              <div className="flex items-center justify-between px-4">
+                <div className="flex items-center gap-3 text-slate-400">
+                  <div className="p-2 bg-slate-100 rounded-lg">
+                    <AlertTriangle className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h4 className="font-black text-xl text-slate-900">为您识别到 {advice.risks.filter(r => r.level === 'high').length} 个需关注事项</h4>
-                    <p className="text-sm text-slate-500 font-medium mt-1">解锁后查看详细的风险规避建议与过往案例参考，助您未雨绸缪</p>
-                  </div>
-                  <button 
-                    onClick={onUnlock}
-                    className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
-                  >
-                    查看详情
-                  </button>
+                  <span className="text-xs font-black uppercase tracking-[0.2em]">关键风险指标</span>
                 </div>
+                {advice.risks.some(r => r.level === 'high') && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold border border-amber-100">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    需关注
+                  </div>
+                )}
               </div>
-            )}
-          </section>
+              
+              <div className={!isPaid ? 'blur-sm select-none pointer-events-none opacity-80 transition-all duration-500' : ''}>
+                <RiskDashboard risks={advice.risks} stressHistory={stressHistory} />
+              </div>
+
+              {!isPaid && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center">
+                  <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    className="p-8 bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/50 text-center space-y-6 max-w-sm mx-auto"
+                  >
+                    <div className="p-4 bg-gradient-to-br from-amber-100 to-amber-50 text-amber-600 rounded-full w-fit mx-auto shadow-inner">
+                      <AlertTriangle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-xl text-slate-900 leading-tight">为您识别到 {advice.risks.filter(r => r.level === 'high').length} 个<br/>需重点关注事项</h4>
+                      <p className="text-sm text-slate-500 font-medium mt-3 leading-relaxed">解锁后查看详细的风险规避建议与过往案例参考，助您未雨绸缪</p>
+                    </div>
+                    <button 
+                      onClick={onUnlock}
+                      className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2"
+                    >
+                      <span>立即查看详情</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                </div>
+              )}
+            </section>
 
           {/* Risk Reminder - ALWAYS VISIBLE (FREE HOOK) */}
-          <section className="p-10 bg-rose-50/50 rounded-[3rem] border border-rose-100 flex flex-col sm:flex-row gap-8 items-start relative overflow-hidden group">
+          <section className="p-8 md:p-10 bg-rose-50/50 rounded-[3rem] border border-rose-100 flex flex-col sm:flex-row gap-6 md:gap-8 items-start relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="p-5 bg-rose-100 text-rose-600 rounded-[1.5rem] shrink-0 shadow-lg shadow-rose-500/10 relative z-10">
-              <AlertTriangle className="w-8 h-8" />
+            <div className="p-4 md:p-5 bg-rose-100 text-rose-600 rounded-[1.5rem] shrink-0 shadow-lg shadow-rose-500/10 relative z-10">
+              <AlertTriangle className="w-6 h-6 md:w-8 md:h-8" />
             </div>
             <div className="space-y-3 relative z-10">
-              <h4 className="font-black text-xl text-rose-900 tracking-tight">风险警示</h4>
-              <p className="text-rose-800 leading-relaxed text-lg font-medium">{advice.riskReminder}</p>
+              <h4 className="font-black text-lg md:text-xl text-rose-900 tracking-tight">风险警示</h4>
+              <p className="text-rose-800 leading-relaxed text-base md:text-lg font-medium">{advice.riskReminder}</p>
             </div>
           </section>
         </div>
       </div>
 
-      {/* 3. Wisdom Tips - Removed as requested */}
-      {/* <WisdomTipsCard tips={advice.wisdomTips} /> */}
-
       {/* 4. Communication & Resources */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 ${!isPaid ? 'blur-md select-none pointer-events-none opacity-60' : ''}`}>
-        <section className="p-8 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 ${!isPaid ? 'blur-md select-none pointer-events-none opacity-60' : ''}`}>
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4 hover:bg-white hover:shadow-lg transition-all duration-300"
+        >
           <div className="flex items-center gap-3 text-slate-900">
-            <MessageCircle className="w-5 h-5" />
-            <h3 className="font-bold">家庭沟通建议</h3>
+            <div className="p-2 bg-white rounded-xl shadow-sm">
+              <MessageCircle className="w-5 h-5 text-blue-500" />
+            </div>
+            <h3 className="font-bold text-lg">家庭沟通建议</h3>
           </div>
-          <p className="text-slate-600 leading-relaxed italic">“{advice.communicationTip}”</p>
-          <div className="text-[10px] text-slate-400 uppercase tracking-wider">建议话术 · 仅供参考</div>
-        </section>
+          <p className="text-slate-600 leading-relaxed italic text-lg">“{advice.communicationTip}”</p>
+          <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            建议话术 · 仅供参考
+          </div>
+        </motion.section>
 
-        <section className="p-8 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4 hover:bg-white hover:shadow-lg transition-all duration-300"
+        >
           <div className="flex items-center gap-3 text-slate-900">
-            <BookOpen className="w-5 h-5" />
-            <h3 className="font-bold">推荐资源</h3>
+            <div className="p-2 bg-white rounded-xl shadow-sm">
+              <BookOpen className="w-5 h-5 text-emerald-500" />
+            </div>
+            <h3 className="font-bold text-lg">推荐资源</h3>
           </div>
-          <p className="text-slate-600 leading-relaxed">{advice.resourceSuggestion}</p>
-          <div className="text-[10px] text-slate-400 uppercase tracking-wider">非诊断性建议 · 仅供参考</div>
-        </section>
+          <p className="text-slate-600 leading-relaxed text-lg">{advice.resourceSuggestion}</p>
+          <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            非诊断性建议 · 仅供参考
+          </div>
+        </motion.section>
       </div>
 
       {/* Health Recommendations */}
