@@ -10,7 +10,9 @@ import {
   Compass, 
   ArrowRight, 
   Loader2, 
+  Brain,
   Heart, 
+  HeartHandshake,
   Briefcase, 
   TrendingUp, 
   Smile, 
@@ -41,7 +43,6 @@ import { useSpeech } from './hooks/useSpeech';
 import ProfilingForm from './components/ProfilingForm';
 import QuestionRecommender from './components/QuestionRecommender';
 import StructuredResult from './components/StructuredResult';
-import ConfessionWall from './components/ConfessionWall';
 import DynamicLogo from './components/DynamicLogo';
 import ThemedLoading from './components/ThemedLoading';
 import MarqueeQuestions from './components/MarqueeQuestions';
@@ -97,15 +98,7 @@ const THEMES: { id: LifeTheme; label: string; icon: React.ReactNode; color: stri
   },
 ];
 
-const MOCK_CONFESSIONS = [
-  { id: '1', age: '52', content: '孩子最近在外面创业欠了不少钱，我整晚整晚睡不着，又不敢跟老伴说。', tags: ['债务压力', '失眠'] },
-  { id: '2', age: '48', content: '在家里忙里忙外一整天，孩子回家就进屋关门，老伴只知道看手机，觉得自己像个透明人。', tags: ['家庭地位', '孤独感'] },
-  { id: '3', age: '55', content: '马上要退休了，突然不知道以后该干什么，心里空落落的。', tags: ['退休焦虑', '价值感'] },
-];
-
 type AppStep = 'landing' | 'payment' | 'profile' | 'theme' | 'questions' | 'input' | 'loading' | 'result';
-
-import { supabase } from './services/auth';
 
 const PRESET_QUESTIONS: Record<LifeTheme, string[]> = {
   health: [
@@ -169,8 +162,6 @@ const PRESET_QUESTIONS: Record<LifeTheme, string[]> = {
     "遇到不顺心的事，怎么快速调整过来？", "总是回忆过去，沉浸在回忆里出不来？", "怎么让自己的晚年生活更有意义？"
   ]
 };
-
-import { Brain, HeartHandshake } from 'lucide-react';
 
 export default function App() {
   const [step, setStep] = useState<AppStep>('landing');
