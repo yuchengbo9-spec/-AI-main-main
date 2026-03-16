@@ -418,7 +418,7 @@ export default function App() {
                 </div>
 
                 <p className="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
-                  不仅仅是聊天，更是您身边的数字家庭医生。<br/>
+                  不仅仅是聊天，更是您身边的“数字专家顾问”<br/>
                   <span className="text-slate-400 text-lg mt-2 block">深度解析 • 风险预警 • 情感共鸣</span>
                 </p>
               </div>
