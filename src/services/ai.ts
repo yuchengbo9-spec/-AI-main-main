@@ -52,6 +52,13 @@ async function callBackendAI(endpoint: string, body: any): Promise<any> {
   }
 }
 
+/** 7×24 知识库增强智能客服（后端 /api/ai/knowledge） */
+export async function askKnowledgeAssistant(question: string): Promise<string> {
+  const data = await callBackendAI("/api/ai/knowledge", { question });
+  if (data && typeof data.answer === "string") return data.answer;
+  throw new Error("服务器返回格式异常");
+}
+
 export async function generateRecommendedQuestions(
   profile: UserProfile,
   theme: string

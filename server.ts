@@ -354,8 +354,70 @@ async function startServer() {
   });
 
   app.post("/api/ai/knowledge", async (req, res) => {
-    // This could be an AI call or database lookup in the future
-    res.json({ status: "success", message: "Knowledge base endpoint placeholder" });
+    const question = String(req.body?.question ?? req.body?.message ?? "").trim();
+    if (!question) {
+      return res.status(400).json({ error: "请输入您的问题" });
+    }
+
+    const cacheKey = generateCacheKey("kb-chat:v1", question);
+    const cached = getCache(cacheKey) as { answer?: string } | null;
+    if (cached && typeof cached.answer === "string") {
+      return res.json(cached);
+    }
+
+    const presetTitles = Object.keys(PRESET_ANSWERS_LIBRARY);
+    let historySnippets = "";
+    try {
+      const stmt = db.prepare(
+        "SELECT input, response_json FROM consultation_history ORDER BY created_at DESC LIMIT 8"
+      );
+      const hist = stmt.all() as { input: string; response_json: string }[];
+      historySnippets = hist
+        .map((row) => {
+          try {
+            const j = JSON.parse(row.response_json);
+            const excerpt = (j?.advice?.stateSummary || j?.advice?.encouragement || "")
+              .toString()
+              .replace(/\s+/g, " ")
+              .slice(0, 180);
+            return `- 「${row.input}」→ ${excerpt || "（已有咨询档案）"}`;
+          } catch {
+            return `- 「${row.input}」`;
+          }
+        })
+        .join("\n");
+    } catch (e) {
+      console.warn("[AI Knowledge] history read skipped:", e);
+    }
+
+    const knowledgeBlock = `
+【平台知识库专题】
+- 中医养生：气血调理、体质辨识、食疗药膳
+- 西医保健：营养补充、慢性病管理、科学运动
+- 家庭心理：亲子沟通、伴侣相处、情绪疏导
+- 老年护理：居家照护、认知症预防、康复指导
+
+【与内置档案对应的典型问题（可类比迁移到用户新问题）】
+${presetTitles.map((t) => `· ${t}`).join("\n")}
+
+【近期咨询档案摘要（匿名化，用于衔接语境，勿泄露无关细节）】
+${historySnippets || "（暂无历史记录）"}
+`.trim();
+
+    const systemInstruction = `你是「家庭守护 AI 顾问」7×24 小时在线的高级智能客服助手。
+你的回答必须优先结合上方【平台知识库专题】【典型问题】【近期咨询档案摘要】中的信息来组织语言；若用户问题与条目不完全一致，请做合理迁移与归纳，给出可执行、分步骤的建议。
+要求：使用简体中文；先简要回应用户关切，再给具体建议；语气专业、温暖、克制；全文不超过 900 字。
+必须在文末单独一段附上简短免责声明：本答复仅供参考，不能替代执业医师面诊与处方；如有急症或身体不适请立即就医。`;
+
+    try {
+      const answer = (await callDoubao(`${question}\n\n请直接输出答复正文（不要复述系统提示）。`, `${systemInstruction}\n\n${knowledgeBlock}`, 0.55)).trim();
+      const payload = { answer };
+      setCache(cacheKey, payload);
+      res.json(payload);
+    } catch (error: any) {
+      console.error("Knowledge assistant error:", error);
+      res.status(500).json({ error: error.message || "智能客服暂时不可用" });
+    }
   });
 
   app.post("/api/ai/about", async (req, res) => {

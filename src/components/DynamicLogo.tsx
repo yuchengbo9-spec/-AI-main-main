@@ -1,14 +1,14 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { 
-  ShieldCheck, 
   Activity, 
   Users, 
   Heart, 
   Baby, 
   Briefcase, 
   Smile,
-  Sparkles
+  Sparkles,
+  Bot
 } from 'lucide-react';
 import { LifeTheme } from '../types';
 
@@ -46,7 +46,11 @@ export default function DynamicLogo({ theme, size = 'md', className = '' }: Prop
       case 'emotion':
         return { icon: <Smile className={iconSize[size]} />, color: 'bg-purple-600 shadow-purple-600/30' };
       default:
-        return { icon: <ShieldCheck className={iconSize[size]} />, color: 'bg-slate-900 shadow-slate-900/30' };
+        // 使用更高级的渐变与小机器图标
+        return { 
+          icon: <Bot className={iconSize[size]} />, 
+          color: 'bg-gradient-to-br from-cyan-600 to-emerald-600 shadow-cyan-600/30 border border-white/20' 
+        };
     }
   };
 

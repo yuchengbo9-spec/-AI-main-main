@@ -53,6 +53,7 @@ import ArchiveDashboard from './components/ArchiveDashboard';
 import DynamicLogo from './components/DynamicLogo';
 import ThemedLoading from './components/ThemedLoading';
 import MarqueeQuestions from './components/MarqueeQuestions';
+import ProductFeatureDock from './components/ProductFeatureDock';
 
 const THEMES: { id: LifeTheme; label: string; icon: React.ReactNode; color: string; description: string; defaultQuestions: string[] }[] = [
   { 
@@ -1243,6 +1244,8 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <ProductFeatureDock onOpenKnowledge={() => setStep('knowledge')} />
     </div>
   );
 }
