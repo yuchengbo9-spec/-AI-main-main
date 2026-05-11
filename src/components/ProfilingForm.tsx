@@ -23,6 +23,7 @@ import {
 
 interface Props {
   onComplete: (profile: UserProfile) => void;
+  onBack?: () => void;
 }
 
 const QUESTIONS = [
@@ -92,7 +93,7 @@ const QUESTIONS = [
   }
 ];
 
-export default function ProfilingForm({ onComplete }: Props) {
+export default function ProfilingForm({ onComplete, onBack }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<UserProfile>>({});
   const [direction, setDirection] = useState(0);
@@ -115,6 +116,8 @@ export default function ProfilingForm({ onComplete }: Props) {
     if (currentStep > 0) {
       setDirection(-1);
       setCurrentStep(currentStep - 1);
+    } else if (onBack) {
+      onBack();
     }
   };
 
@@ -134,7 +137,7 @@ export default function ProfilingForm({ onComplete }: Props) {
         <div className="flex justify-between items-center text-slate-400">
           <button
             onClick={handleBack}
-            disabled={currentStep === 0}
+            disabled={currentStep === 0 && !onBack}
             className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all ${
               currentStep === 0 ? 'opacity-0 cursor-default' : 'hover:text-emerald-600'
             }`}

@@ -1,6 +1,7 @@
-import { UserMemory, UserTag } from "../types";
+import { ConsultationSession, Persona360Report, UserMemory, UserTag } from "../types";
 
 const MEMORY_KEY = "family_guardian_user_memory";
+const ARCHIVE_KEY = "family_guardian_archive_sessions";
 
 export const MemoryService = {
   getMemory(): UserMemory {
@@ -96,5 +97,38 @@ export const MemoryService = {
       
       请利用这些背景信息，使建议更具个性化，并体现出对用户长期关注点的“深度理解”。
     `;
+  }
+  ,
+
+  getArchiveSessions(): ConsultationSession[] {
+    const raw = localStorage.getItem(ARCHIVE_KEY);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveArchiveSessions(sessions: ConsultationSession[]) {
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(sessions));
+  },
+
+  upsertArchiveSession(session: ConsultationSession) {
+    const sessions = this.getArchiveSessions();
+    const idx = sessions.findIndex(s => s.id === session.id);
+    const next = idx >= 0
+      ? [...sessions.slice(0, idx), session, ...sessions.slice(idx + 1)]
+      : [session, ...sessions];
+    // keep latest 20
+    this.saveArchiveSessions(next.slice(0, 20));
+  },
+
+  attach360ReportToLatest(report: Persona360Report) {
+    const sessions = this.getArchiveSessions();
+    if (sessions.length === 0) return;
+    const latest = { ...sessions[0], report360: report };
+    this.saveArchiveSessions([latest, ...sessions.slice(1)]);
   }
 };

@@ -15,6 +15,9 @@ View your app in AI Studio: https://ai.studio/apps/d0e785bf-c065-4a4d-8ae4-6984c
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Configure Doubao (Volcengine Ark) env vars (recommended via `.env.local`):
+   - `DOUBAO_API_KEY` (your Ark API key)
+   - `DOUBAO_MODEL_ID` (your endpoint/model id, usually starts with `ep-`)
+   - `DOUBAO_ENDPOINT` (optional, defaults to Ark chat completions)
 3. Run the app:
    `npm run dev`

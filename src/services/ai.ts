@@ -73,12 +73,13 @@ export async function generateRecommendedQuestions(
 export async function generateLifeSimulation(
   theme: string,
   input: string,
-  profile: UserProfile
+  profile: UserProfile,
+  expertId?: string
 ): Promise<SimulationResult> {
   const memoryContext = MemoryService.getMemoryContext();
   let lastError: any;
 
-  console.log("[Frontend AI Service] Starting simulation request...", { theme, input });
+  console.log("[Frontend AI Service] Starting simulation request...", { theme, input, expertId });
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -86,6 +87,7 @@ export async function generateLifeSimulation(
         theme,
         input,
         profile,
+        expertId,
         memoryContext,
         attempt
       });
@@ -101,4 +103,54 @@ export async function generateLifeSimulation(
     }
   }
   throw lastError;
+}
+
+export type DeepDiveResponse = {
+  advice?: Partial<SimulationResult["advice"]>;
+};
+
+export async function generateLifeSimulationDeepDive(
+  theme: string,
+  input: string,
+  profile: UserProfile,
+  expertId?: string
+): Promise<DeepDiveResponse> {
+  const memoryContext = MemoryService.getMemoryContext();
+  let lastError: any;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await callBackendAI("/api/ai/simulation/deepdive", {
+        theme,
+        input,
+        profile,
+        expertId,
+        memoryContext,
+        attempt
+      });
+    } catch (err) {
+      console.error(`[Frontend AI Service] Deepdive attempt ${attempt + 1} failed:`, err);
+      lastError = err;
+      if (attempt === 0) {
+        await new Promise(resolve => setTimeout(resolve, 1200));
+      }
+    }
+  }
+  throw lastError;
+}
+
+export async function generatePersona360Report(params: {
+  profile: UserProfile;
+  theme: string;
+  input: string;
+  expertId?: string;
+  lastAdvice?: SimulationResult["advice"];
+}): Promise<any> {
+  return await callBackendAI("/api/ai/persona360", {
+    profile: params.profile,
+    theme: params.theme,
+    input: params.input,
+    expertId: params.expertId,
+    lastAdvice: params.lastAdvice
+  });
 }

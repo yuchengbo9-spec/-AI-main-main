@@ -51,11 +51,33 @@ export interface Perspective {
   suggestion: string;
 }
 
+export interface ExpertRole {
+  id: string;
+  name: string;
+  title: string;
+  description: string;
+  avatar: string;
+  persona: string;
+  voiceConfig: {
+    pitch: number;
+    rate: number;
+  };
+  color: string;
+}
+
+export interface SkillCard {
+  name: string;
+  description: string;
+  points: number;
+  challenge: string;
+}
+
 export interface StructuredAdvice {
   stateSummary: string;
   riskReminder: string;
   risks: RiskIndicator[];
   wisdomTips?: WisdomTips;
+  skillCard?: SkillCard; // 新增技能卡片，用于游戏化学习
   actions: {
     today: string;
     thisWeek: string;
@@ -84,6 +106,16 @@ export interface StructuredAdvice {
     story: string;
     expertComment: string;
   };
+  wellAly?: WellAlyData;
+}
+
+export interface WellAlyData {
+  healthRecords: { type: string; suggestion: string }[];
+  medicationTracker?: { name: string; frequency: string; note: string }[];
+  reportAnalysis?: { item: string; result: string; advice: string }[];
+  familyHealth?: { member: string; advice: string }[];
+  emotionalRituals?: { ritualName: string; frequency: string; benefit: string }[]; // 情感互动仪式
+  relationshipDynamics?: { indicator: string; status: string; advice: string }[]; // 关系动态分析
 }
 
 export interface UserTag {
@@ -99,6 +131,39 @@ export interface UserMemory {
   lastActive: string;
   personaSummary?: string;
   stressHistory?: { date: string; score: number }[];
+}
+
+export interface Persona360Dimension {
+  name: '养生' | '健康' | '运动' | '穿搭' | '情绪' | '家庭' | '事业' | '社交';
+  summary: string; // 1-2 sentences
+  doToday: string; // one concrete action
+  doThisWeek: string; // one concrete action
+  avoid: string; // one red-flag / avoid
+  metrics?: string[]; // optional measurable indicators
+}
+
+export interface Persona360Report {
+  createdAt: string;
+  title: string;
+  personaSummary: string;
+  keySignals: string[]; // key observed facts
+  topConcerns: string[]; // ranked concerns
+  strengths: string[]; // positive traits
+  blindSpots: string[]; // likely blind spots
+  dimensions: Persona360Dimension[];
+  next7DaysPlan: { day: string; focus: string; task: string }[]; // 7 items
+  disclaimer: string;
+}
+
+export interface ConsultationSession {
+  id: string;
+  createdAt: string;
+  expertId: string;
+  themeLabel: string;
+  input: string;
+  resonanceScore?: number;
+  soulSignature?: string;
+  report360?: Persona360Report;
 }
 
 export interface SimulationResult {

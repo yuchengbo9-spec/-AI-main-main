@@ -54,15 +54,15 @@ export function useSpeech() {
     }
   };
 
-  const speak = (text: string) => {
+  const speak = (text: string, pitch = 1, rate = 1) => {
     if (synthRef.current) {
       // Cancel previous speech
       synthRef.current.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'zh-CN';
-      utterance.rate = 1;
-      utterance.pitch = 1;
+      utterance.rate = rate;
+      utterance.pitch = pitch;
       
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);

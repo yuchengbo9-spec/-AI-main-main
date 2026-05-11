@@ -18,13 +18,13 @@ import {
   RefreshCw,
   Utensils,
   Dumbbell,
-  Moon
+  Moon,
+  Activity
 } from 'lucide-react';
 
 import RiskDashboard from './RiskDashboard';
 import DecisionSimulator from './DecisionSimulator';
 import PerspectiveSwitcher from './PerspectiveSwitcher';
-import WisdomTipsCard from './WisdomTipsCard';
 import DynamicLogo from './DynamicLogo';
 import SoulResonanceDisplay from './SoulResonanceDisplay';
 import { LifeTheme } from '../types';
@@ -36,10 +36,42 @@ interface Props {
   stressHistory?: { date: string; score: number }[];
   isPaid?: boolean;
   onUnlock?: () => void;
+  onSpeak?: (text: string) => void;
+  isSpeaking?: boolean;
+  onRequestDeepDive?: () => Promise<void>;
+  isDeepDiveLoading?: boolean;
+  deepDiveError?: string | null;
+  onSaveArchive?: () => Promise<void> | void;
+  isArchiveSaving?: boolean;
 }
 
-export default function StructuredResult({ result, onReset, theme, stressHistory, isPaid = false, onUnlock }: Props) {
+export default function StructuredResult({
+  result,
+  onReset,
+  theme,
+  stressHistory,
+  isPaid = false,
+  onUnlock,
+  onSpeak,
+  isSpeaking = false,
+  onRequestDeepDive,
+  isDeepDiveLoading = false,
+  deepDiveError = null,
+  onSaveArchive,
+  isArchiveSaving = false,
+}: Props) {
   const { advice, followUpQuestions, resonanceScore = 85, soulSignature = "心之所向，素履以往" } = result;
+
+  const hasDeepBlocks =
+    Boolean(advice.caseStudy) ||
+    Boolean(advice.perspectives && advice.perspectives.length > 0) ||
+    Boolean(advice.decisionSimulation) ||
+    Boolean(
+      advice.lifestyleAdvice &&
+        (advice.lifestyleAdvice.moodRegulation ||
+          advice.lifestyleAdvice.sleepImprovement ||
+          advice.lifestyleAdvice.recreation)
+    );
 
   return (
     <div className="max-w-4xl mx-auto space-y-10">
@@ -58,10 +90,25 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
             </div>
             <h3 className="text-2xl font-black tracking-tight">为您定制的守护计划</h3>
           </div>
-          <button className="text-xs text-emerald-600 font-black uppercase tracking-[0.2em] bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-colors">
-            <Download className="w-3 h-3" />
-            保存计划
-          </button>
+          {onSaveArchive ? (
+            <button
+              type="button"
+              onClick={() => void onSaveArchive()}
+              disabled={isArchiveSaving}
+              className="text-xs text-emerald-600 font-black uppercase tracking-[0.2em] bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+            >
+              <Download className="w-3 h-3" />
+              {isArchiveSaving ? '保存中…' : '保存我的档案'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="text-xs text-emerald-600 font-black uppercase tracking-[0.2em] bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-colors"
+            >
+              <Download className="w-3 h-3" />
+              保存计划
+            </button>
+          )}
         </div>
         
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-8 ${!isPaid ? 'blur-md select-none pointer-events-none opacity-60' : ''}`}>
@@ -139,14 +186,29 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
               </div>
             </div>
             
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="shrink-0"
-            >
-              <SoulResonanceDisplay score={resonanceScore} />
-            </motion.div>
+            <div className="shrink-0 flex flex-col items-center gap-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                <SoulResonanceDisplay score={resonanceScore} />
+              </motion.div>
+              {onSpeak && (
+                <button
+                  type="button"
+                  onClick={() => onSpeak(advice.stateSummary)}
+                  title="听专家解读"
+                  className={`p-3 rounded-full border shadow-lg transition-all ${
+                    isSpeaking
+                      ? 'bg-emerald-500 text-white animate-pulse border-emerald-400'
+                      : 'bg-white/90 text-emerald-600 hover:scale-105 border-white/40'
+                  }`}
+                >
+                  <Activity className={`w-5 h-5 ${isSpeaking ? 'animate-bounce' : ''}`} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -282,6 +344,42 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
         </section>
       )}
 
+      {onRequestDeepDive && (
+        <div className="px-2 py-2 space-y-3">
+          {(isDeepDiveLoading || deepDiveError) && (
+            <div className="glass-card rounded-[2rem] border-white/40 p-6 space-y-2">
+              {isDeepDiveLoading && (
+                <div className="flex items-center gap-3 text-slate-600 text-sm font-bold">
+                  <div className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-emerald-500 animate-spin" />
+                  正在加载深度分析…
+                </div>
+              )}
+              {deepDiveError && (
+                <div className="text-sm text-rose-600 font-bold">深度分析加载失败：{deepDiveError}</div>
+              )}
+            </div>
+          )}
+          {!hasDeepBlocks && !isDeepDiveLoading && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await onRequestDeepDive();
+                  } catch {
+                    /* parent holds error */
+                  }
+                }}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-white rounded-full border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all font-black text-sm text-slate-900"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                加载深度分析（案例 · 视角 · 推演）
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 5. Real-life Case Study - NEW SECTION */}
       {advice.caseStudy && (
         <section className={`glass-card rounded-[3rem] border-white/40 overflow-hidden ${!isPaid ? 'blur-md select-none pointer-events-none opacity-60' : ''}`}>
@@ -413,15 +511,36 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
         </motion.div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 pt-8">
-          <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-all">
-            <Download className="w-4 h-4" />
-            保存建议卡
-          </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 rounded-xl text-sm font-medium border border-slate-200 hover:bg-slate-50 transition-all">
+          {onSaveArchive ? (
+            <button
+              type="button"
+              onClick={() => void onSaveArchive()}
+              disabled={isArchiveSaving}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              {isArchiveSaving ? '保存中…' : '保存我的档案'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-all"
+            >
+              <Download className="w-4 h-4" />
+              保存建议卡
+            </button>
+          )}
+          <button
+            type="button"
+            className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 rounded-xl text-sm font-medium border border-slate-200 hover:bg-slate-50 transition-all"
+          >
             <Share2 className="w-4 h-4" />
             分享给家人
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 rounded-xl text-sm font-medium border border-slate-200 hover:bg-slate-50 transition-all">
+          <button
+            type="button"
+            className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 rounded-xl text-sm font-medium border border-slate-200 hover:bg-slate-50 transition-all"
+          >
             <Printer className="w-4 h-4" />
             打印码
           </button>
