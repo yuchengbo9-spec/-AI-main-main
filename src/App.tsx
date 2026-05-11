@@ -34,7 +34,8 @@ import {
   Activity,
   Mic,
   MicOff,
-  Volume2
+  Volume2,
+  Calendar
 } from 'lucide-react';
 import { generateLifeSimulation, generateRecommendedQuestions } from './services/ai';
 import { SimulationResult, LifeTheme, UserProfile, RecommendedQuestion, UserMemory } from './types';
@@ -491,7 +492,7 @@ export default function App() {
                 
                 <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 border border-slate-200 shadow-sm backdrop-blur-md mb-8 hover:scale-105 transition-transform cursor-default">
                   <Sparkles className="w-5 h-5 text-emerald-500 animate-pulse" />
-                  <span className="text-sm font-semibold text-slate-600 tracking-wide">专为 30+ 人群打造的家庭 AI 顾问</span>
+                  <span className="text-sm font-semibold text-slate-600 tracking-wide">专为 40+ 人群打造的家庭 AI 顾问</span>
                 </div>
                 
                 <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 leading-[1.1]">
@@ -527,7 +528,14 @@ export default function App() {
 
                 <p className="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
                   不仅仅是聊天，更是您身边的“数字专家顾问”<br/>
-                  <span className="text-slate-400 text-lg mt-2 block">深度解析 • 风险预警 • 情感共鸣</span>
+                  <span className="text-slate-400 text-base mt-4 flex flex-wrap justify-center gap-x-3 gap-y-3">
+                    <span className="px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/50">分阶段行动计划</span>
+                    <span className="px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/50">多维度风险预警</span>
+                    <span className="px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/50">决策沙盘推演</span>
+                    <span className="px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/50">多视角共情建议</span>
+                    <span className="px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/50">长效记忆陪伴</span>
+                    <span className="px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/50">便捷语音交互</span>
+                  </span>
                 </p>
               </div>
 
@@ -581,7 +589,7 @@ export default function App() {
                     </div>
                   </div>
                   <ul className="space-y-3">
-                    {['个性化行动清单', '心理风险预警', '家庭沟通话术'].map((item, i) => (
+                    {['分阶段详细行动清单', '多维度专属风险仪表盘', '决策沙盘路径对比', '多视角家庭沟通建议', '专属压力趋势与记忆'].map((item, i) => (
                       <li key={i} className="flex items-center gap-3 text-sm text-slate-700 font-medium">
                         <div className="p-1 bg-emerald-500/20 rounded-full">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -877,10 +885,10 @@ export default function App() {
           <div className="glass-card rounded-[2.5rem] overflow-hidden border-slate-200/60 shadow-xl shadow-slate-200/20">
             <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-slate-100">
               {[
-                { icon: <Brain className="w-5 h-5 text-emerald-500" />, title: "深度思维", desc: "多维分析" },
-                { icon: <ShieldCheck className="w-5 h-5 text-blue-500" />, title: "隐私加密", desc: "安全保障" },
-                { icon: <HeartHandshake className="w-5 h-5 text-rose-500" />, title: "情感陪伴", desc: "情绪理解" },
-                { icon: <AlertCircle className="w-5 h-5 text-amber-500" />, title: "免责说明", desc: "建议仅供参考" }
+                { icon: <Calendar className="w-5 h-5 text-emerald-500" />, title: "分阶段行动计划", desc: "今日/本周/本月指引" },
+                { icon: <Activity className="w-5 h-5 text-blue-500" />, title: "多维风险洞察", desc: "健康/心理/财务预警" },
+                { icon: <Compass className="w-5 h-5 text-indigo-500" />, title: "决策沙盘推演", desc: "多路径利弊对比" },
+                { icon: <ShieldAlert className="w-5 h-5 text-amber-500" />, title: "安全与免责", desc: "隐私保护·仅供参考" }
               ].map((item, i) => (
                 <div key={i} className="p-10 group hover:bg-slate-50/50 transition-colors text-center relative overflow-hidden flex flex-col items-center justify-center">
                   <div className="relative z-10 space-y-4 flex flex-col items-center">
