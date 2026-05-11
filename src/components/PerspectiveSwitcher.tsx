@@ -10,6 +10,8 @@ interface Props {
 export default function PerspectiveSwitcher({ perspectives }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
 
+  if (!perspectives || perspectives.length === 0) return null;
+
   const getTheme = (role: string) => {
     if (role.includes('自我')) return 'bg-indigo-50 text-indigo-600 border-indigo-100';
     if (role.includes('儿女')) return 'bg-rose-50 text-rose-600 border-rose-100';

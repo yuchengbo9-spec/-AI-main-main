@@ -12,6 +12,8 @@ export default function DecisionSimulator({ pathA, pathB }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'simulation'>('overview');
   const [simulationStep, setSimulationStep] = useState(0);
 
+  if (!pathA || !pathB) return null;
+
   const startSimulation = () => {
     setActiveTab('simulation');
     setSimulationStep(0);

@@ -78,17 +78,21 @@ export async function generateLifeSimulation(
   const memoryContext = MemoryService.getMemoryContext();
   let lastError: any;
 
+  console.log("[Frontend AI Service] Starting simulation request...", { theme, input });
+
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      return await callBackendAI("/api/ai/simulation", {
+      const result = await callBackendAI("/api/ai/simulation", {
         theme,
         input,
         profile,
         memoryContext,
         attempt
       });
+      console.log("[Frontend AI Service] Simulation request success", result);
+      return result;
     } catch (err) {
-      console.error(`Simulation attempt ${attempt + 1} failed:`, err);
+      console.error(`[Frontend AI Service] Simulation attempt ${attempt + 1} failed:`, err);
       lastError = err;
       if (attempt === 0) {
         // Wait a bit before retry

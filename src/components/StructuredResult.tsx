@@ -264,9 +264,9 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
           </div>
           <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: <Utensils className="w-6 h-6" />, label: '饮食调理', content: advice.healthAdvice.diet, color: 'text-orange-600', bg: 'bg-orange-50' },
-              { icon: <Dumbbell className="w-6 h-6" />, label: '运动建议', content: advice.healthAdvice.exercise, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { icon: <Moon className="w-6 h-6" />, label: '睡眠改善', content: advice.healthAdvice.sleep, color: 'text-indigo-600', bg: 'bg-indigo-50' }
+              { icon: <Utensils className="w-6 h-6" />, label: '饮食调理', content: advice.healthAdvice?.diet, color: 'text-orange-600', bg: 'bg-orange-50' },
+              { icon: <Dumbbell className="w-6 h-6" />, label: '运动建议', content: advice.healthAdvice?.exercise, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { icon: <Moon className="w-6 h-6" />, label: '睡眠改善', content: advice.healthAdvice?.sleep, color: 'text-indigo-600', bg: 'bg-indigo-50' }
             ].map((item, i) => (
               <div key={i} className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -345,9 +345,9 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
 
             <div className="grid grid-cols-1 gap-6 text-left">
               {[
-                { icon: <Heart className="w-5 h-5" />, title: '心理调节', content: advice.lifestyleAdvice.moodRegulation, color: 'bg-rose-50 text-rose-600 border-rose-100' },
-                { icon: <Moon className="w-5 h-5" />, title: '睡眠改善', content: advice.lifestyleAdvice.sleepImprovement, color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
-                { icon: <Utensils className="w-5 h-5" />, title: '休闲建议', content: advice.lifestyleAdvice.recreation, color: 'bg-amber-50 text-amber-600 border-amber-100' }
+                { icon: <Heart className="w-5 h-5" />, title: '心理调节', content: advice.lifestyleAdvice?.moodRegulation, color: 'bg-rose-50 text-rose-600 border-rose-100' },
+                { icon: <Moon className="w-5 h-5" />, title: '睡眠改善', content: advice.lifestyleAdvice?.sleepImprovement, color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
+                { icon: <Utensils className="w-5 h-5" />, title: '休闲建议', content: advice.lifestyleAdvice?.recreation, color: 'bg-amber-50 text-amber-600 border-amber-100' }
               ].map((item, i) => (
                 <div key={i} className={`p-6 rounded-2xl border ${item.color} flex gap-5 items-start transition-transform hover:-translate-y-1`}>
                   <div className={`p-3 rounded-xl bg-white shadow-sm shrink-0`}>
