@@ -198,77 +198,20 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
-const MOCK_RESULT: SimulationResult = {
-  advice: {
-    stateSummary: "当前处于生活转折期，面临一定的选择压力。\n核心挑战在于平衡个人需求与家庭责任。\n未来趋势向好，只需稳步调整即可。",
-    riskReminder: "请注意保持身心放松，避免过度焦虑影响决策。",
-    risks: [
-      { type: 'health', level: 'medium', label: '睡眠质量', description: '近期可能存在入睡困难或多梦情况', adjustment: '建议睡前冥想10分钟', score: 65 },
-      { type: 'psychology', level: 'high', label: '焦虑指数', description: '对未来不确定性感到担忧', adjustment: '尝试专注于当下可控的小事', score: 80 }
-    ],
-    actions: {
-      today: "花15分钟做一次深呼吸放松练习，列出明天必须完成的3件事。",
-      thisWeek: "安排一次户外散步，与一位信任的朋友倾诉心事。",
-      thisMonth: "重新审视家庭财务规划，确保有一笔应急备用金。"
-    },
-    communicationTip: "我理解你的担忧，我们可以一起坐下来慢慢商量吗？",
-    resourceSuggestion: "推荐阅读《非暴力沟通》，学习更有效的表达方式。",
-    encouragement: "每一次转折都是成长的契机，你比自己想象的更强大。",
-    lifestyleAdvice: {
-      moodRegulation: "每天记录一件开心的小事",
-      sleepImprovement: "晚上10点后减少蓝光摄入",
-      recreation: "周末尝试一次短途郊游"
-    },
-    healthAdvice: {
-      diet: "增加深色蔬菜摄入，减少高糖饮食",
-      exercise: "每周进行3次30分钟有氧运动",
-      sleep: "保持规律作息，睡前避免剧烈运动"
-    },
-    decisionSimulation: {
-      pathA: {
-        label: "保守方案",
-        trend: "生活平稳但缺乏突破",
-        risks: ["长期可能产生倦怠感"],
-        actions: ["维持现状", "小步微调"],
-        emotionalImpact: "安稳但略感压抑"
-      },
-      pathB: {
-        label: "进取方案",
-        trend: "短期波动大，长期收益高",
-        risks: ["初期适应压力较大"],
-        actions: ["主动寻求改变", "承担适度风险"],
-        emotionalImpact: "兴奋与焦虑并存"
-      }
-    },
-    perspectives: [
-      { role: "自我视角", psychology: "渴望被理解和支持", suggestion: "先照顾好自己的情绪，再关照他人" },
-      { role: "家人视角", psychology: "担心你的身体和状态", suggestion: "多表达感谢，少一些指责" }
-    ],
-    caseStudy: {
-      title: "李先生的转型之路",
-      story: "李先生在45岁时面临职业瓶颈，通过半年的调整和学习，成功开启第二曲线。",
-      expertComment: "改变永远不晚，关键在于迈出第一步。"
-    }
-  },
-  followUpQuestions: ["如何缓解工作压力？", "怎样改善夫妻关系？", "退休后如何规划生活？"],
-  resonanceScore: 88,
-  soulSignature: "行到水穷处，坐看云起时"
-};
-
 export default function App() {
-  const [step, setStep] = useState<AppStep>('result');
+  const [step, setStep] = useState<AppStep>('landing');
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [selectedTheme, setSelectedTheme] = useState<LifeTheme | null>('family');
+  const [selectedTheme, setSelectedTheme] = useState<LifeTheme | null>(null);
   const [recommendedQuestions, setRecommendedQuestions] = useState<RecommendedQuestion[]>([]);
   const [userInput, setUserInput] = useState('');
-  const [result, setResult] = useState<SimulationResult | null>(MOCK_RESULT);
+  const [result, setResult] = useState<SimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [memory, setMemory] = useState<UserMemory>(MemoryService.getMemory());
 
   const [questionPage, setQuestionPage] = useState(0);
-  const [isPaid, setIsPaid] = useState(true);
+  const [isPaid, setIsPaid] = useState(false);
   const { isListening, transcript, startListening, stopListening, isSpeaking, speak, stopSpeaking } = useSpeech();
 
   useEffect(() => {
@@ -361,11 +304,8 @@ export default function App() {
     
     // Set a safety timeout to inform user if it's taking too long
     const timeoutId = setTimeout(() => {
-      console.warn("Simulation is taking longer than expected... Switching to Mock Mode for demo.");
-      // Fallback to Mock Result so user can see the UI
-      setResult(MOCK_RESULT);
-      setStep('result');
-    }, 8000); // Shorten timeout to 8s for better experience
+      console.warn("Simulation is taking longer than expected...");
+    }, 15000);
 
     const performRequest = async (attempt: number): Promise<void> => {
       try {
@@ -409,10 +349,7 @@ export default function App() {
           return performRequest(attempt + 1);
         }
         
-        // If all retries fail, use Mock Result to show UI
-        console.warn("All simulation attempts failed. Using Mock Result.");
-        setResult(MOCK_RESULT);
-        setStep('result');
+        throw err;
       }
     };
 

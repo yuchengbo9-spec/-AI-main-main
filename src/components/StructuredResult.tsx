@@ -39,7 +39,7 @@ interface Props {
 }
 
 export default function StructuredResult({ result, onReset, theme, stressHistory, isPaid = false, onUnlock }: Props) {
-  const { advice, followUpQuestions, resonanceScore = 85, soulSignature = "心之所向，素履以往" } = result;
+  const { advice, followUpQuestions = [], resonanceScore = 85, soulSignature = "心之所向，素履以往" } = result;
 
   return (
     <div className="max-w-4xl mx-auto space-y-10">

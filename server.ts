@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import crypto from "crypto";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import type { SimulationResult } from "./src/types";
 
 dotenv.config();
 
@@ -386,7 +387,7 @@ async function startServer() {
       
       // Ultimate Fallback: Return a generic valid structure so the UI doesn't break
       console.log("[AI Simulation] Using Generic Fallback Response");
-      const genericFallback = {
+      const genericFallback: SimulationResult = {
         advice: {
           stateSummary: "系统暂时繁忙，但您的困扰我们收到了。1. 现状定性：当前可能面临一些不确定性；2. 核心痛点：需要更清晰的指引；3. 积极展望：稍作调整，事情会向好的方向发展。",
           riskReminder: "建议稍后重试或咨询专业人士。",
@@ -396,10 +397,17 @@ async function startServer() {
             thisWeek: "梳理当前的问题清单，按优先级排序，先解决最紧急的一项。",
             thisMonth: "保持规律的作息，关注身心健康，为应对挑战积蓄能量。"
           },
-          encouragement: "路虽远，行则将至；事虽难，做则必成。",
-          soulSignature: "静水流深"
+          communicationTip: "我现在需要先稳住节奏，我们一起分步处理。",
+          resourceSuggestion: "稍后重试，必要时咨询线下专业人士。",
+          encouragement: "路虽远，行则将至；事虽难，做则必成。"
         },
-        resonanceScore: 80
+        followUpQuestions: [
+          "我现在最应该先做哪一步？",
+          "如何和家人沟通这个问题？",
+          "什么时候需要寻求专业帮助？"
+        ],
+        resonanceScore: 80,
+        soulSignature: "静水流深"
       };
       if (supabase) {
         const record = { theme, input, profile, result: genericFallback, resonance_score: genericFallback?.resonanceScore ?? null };
