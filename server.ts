@@ -71,7 +71,7 @@ async function startServer() {
   });
 
   // Doubao API Configuration
-  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
+  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || "";
   let DOUBAO_ENDPOINT = process.env.DOUBAO_ENDPOINT || "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
   let DOUBAO_MODEL_ID = process.env.DOUBAO_MODEL_ID || "ep-m-20260305162457-9q2xm";
 
@@ -87,7 +87,7 @@ async function startServer() {
   else if (DOUBAO_API_KEY.startsWith("ep-")) {
     console.log("Detected Endpoint ID in API Key field, swapping...");
     const temp = DOUBAO_API_KEY;
-    DOUBAO_API_KEY = (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36) ? DOUBAO_MODEL_ID : "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
+    DOUBAO_API_KEY = (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36) ? DOUBAO_MODEL_ID : "";
     DOUBAO_MODEL_ID = temp;
   }
 
@@ -384,30 +384,7 @@ async function startServer() {
         return res.json(resp);
       }
       
-      // Ultimate Fallback: Return a generic valid structure so the UI doesn't break
-      console.log("[AI Simulation] Using Generic Fallback Response");
-      const genericFallback = {
-        advice: {
-          stateSummary: "系统暂时繁忙，但您的困扰我们收到了。1. 现状定性：当前可能面临一些不确定性；2. 核心痛点：需要更清晰的指引；3. 积极展望：稍作调整，事情会向好的方向发展。",
-          riskReminder: "建议稍后重试或咨询专业人士。",
-          risks: [],
-          actions: {
-            today: "深呼吸，暂时放下焦虑，做一件让自己放松的小事（如散步、听音乐）。",
-            thisWeek: "梳理当前的问题清单，按优先级排序，先解决最紧急的一项。",
-            thisMonth: "保持规律的作息，关注身心健康，为应对挑战积蓄能量。"
-          },
-          encouragement: "路虽远，行则将至；事虽难，做则必成。",
-          soulSignature: "静水流深"
-        },
-        resonanceScore: 80
-      };
-      if (supabase) {
-        const record = { theme, input, profile, result: genericFallback, resonance_score: genericFallback?.resonanceScore ?? null };
-        void supabase.from("consultations").insert(record);
-      }
-      return res.json(genericFallback);
-      
-      // res.status(500).json({ error: error.message || "生成模拟结果失败" });
+      return res.status(500).json({ error: error.message || "生成模拟结果失败，请稍后重试" });
     }
   });
 
