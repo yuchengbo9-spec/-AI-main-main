@@ -39,7 +39,9 @@ interface Props {
 }
 
 export default function StructuredResult({ result, onReset, theme, stressHistory, isPaid = false, onUnlock }: Props) {
-  const { advice, followUpQuestions, resonanceScore = 85, soulSignature = "心之所向，素履以往" } = result;
+  const { advice, followUpQuestions = [], resonanceScore = 85, soulSignature = "心之所向，素履以往" } = result;
+  const risks = Array.isArray(advice.risks) ? advice.risks : [];
+  const actions = advice.actions ?? { today: '', thisWeek: '', thisMonth: '' };
 
   return (
     <div className="max-w-4xl mx-auto space-y-10">
@@ -66,9 +68,9 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
         
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-8 ${!isPaid ? 'blur-md select-none pointer-events-none opacity-60' : ''}`}>
           {[
-            { label: '今天', content: advice.actions.today, color: 'bg-gradient-to-br from-emerald-600 to-emerald-500 text-white border-emerald-400 shadow-2xl shadow-emerald-600/30', icon: <Sparkles className="w-5 h-5" /> },
-            { label: '本周', content: advice.actions.thisWeek, color: 'glass-card text-slate-900 border-white/40', icon: <Calendar className="w-5 h-5 text-blue-500" /> },
-            { label: '本月', content: advice.actions.thisMonth, color: 'glass-card text-slate-900 border-white/40', icon: <ArrowRight className="w-5 h-5 text-amber-500" /> }
+            { label: '今天', content: actions.today, color: 'bg-gradient-to-br from-emerald-600 to-emerald-500 text-white border-emerald-400 shadow-2xl shadow-emerald-600/30', icon: <Sparkles className="w-5 h-5" /> },
+            { label: '本周', content: actions.thisWeek, color: 'glass-card text-slate-900 border-white/40', icon: <Calendar className="w-5 h-5 text-blue-500" /> },
+            { label: '本月', content: actions.thisMonth, color: 'glass-card text-slate-900 border-white/40', icon: <ArrowRight className="w-5 h-5 text-amber-500" /> }
           ].map((item, i) => (
             <motion.div 
               key={i} 
@@ -160,7 +162,7 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
                   </div>
                   <span className="text-xs font-black uppercase tracking-[0.2em]">关键风险指标</span>
                 </div>
-                {advice.risks.some(r => r.level === 'high') && (
+                {risks.some(r => r.level === 'high') && (
                   <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold border border-amber-100">
                     <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                     需关注
@@ -169,7 +171,7 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
               </div>
               
               <div className={!isPaid ? 'blur-sm select-none pointer-events-none opacity-80 transition-all duration-500' : ''}>
-                <RiskDashboard risks={advice.risks} stressHistory={stressHistory} />
+                <RiskDashboard risks={risks} stressHistory={stressHistory} />
               </div>
 
               {!isPaid && (
@@ -183,7 +185,7 @@ export default function StructuredResult({ result, onReset, theme, stressHistory
                       <AlertTriangle className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="font-black text-xl text-slate-900 leading-tight">为您识别到 {advice.risks.filter(r => r.level === 'high').length} 个<br/>需重点关注事项</h4>
+                      <h4 className="font-black text-xl text-slate-900 leading-tight">为您识别到 {risks.filter(r => r.level === 'high').length} 个<br/>需重点关注事项</h4>
                       <p className="text-sm text-slate-500 font-medium mt-3 leading-relaxed">解锁后查看详细的风险规避建议与过往案例参考，助您未雨绸缪</p>
                     </div>
                     <button 
