@@ -1,10 +1,14 @@
 import { SimulationResult, UserProfile, RecommendedQuestion } from "../types";
 import { MemoryService } from "./memory";
+import { validateSimulationResult } from "./resultValidation";
 
 /**
  * Helper to call backend AI endpoints
  */
 async function callBackendAI(endpoint: string, body: any): Promise<any> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 30000);
+
   try {
     // Ensure absolute URL for fetch
     const absoluteUrl = endpoint.startsWith("http") 
@@ -17,7 +21,11 @@ async function callBackendAI(endpoint: string, body: any): Promise<any> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     }).catch(err => {
+      if (err.name === "AbortError") {
+        throw new Error("请求超时，请稍后重试");
+      }
       console.error("Fetch network error:", err);
       throw new Error(`网络请求失败: ${err.message || "无法连接到服务器"}`);
     });
@@ -49,6 +57,8 @@ async function callBackendAI(endpoint: string, body: any): Promise<any> {
       throw new Error("网络请求异常，请检查网络连接或稍后重试");
     }
     throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 
@@ -90,7 +100,7 @@ export async function generateLifeSimulation(
         attempt
       });
       console.log("[Frontend AI Service] Simulation request success", result);
-      return result;
+      return validateSimulationResult(result);
     } catch (err) {
       console.error(`[Frontend AI Service] Simulation attempt ${attempt + 1} failed:`, err);
       lastError = err;

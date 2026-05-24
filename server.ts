@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import crypto from "crypto";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { validateSimulationResult } from "./src/services/resultValidation";
 
 dotenv.config();
 
@@ -71,24 +72,21 @@ async function startServer() {
   });
 
   // Doubao API Configuration
-  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
+  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY;
   let DOUBAO_ENDPOINT = process.env.DOUBAO_ENDPOINT || "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
-  let DOUBAO_MODEL_ID = process.env.DOUBAO_MODEL_ID || "ep-m-20260305162457-9q2xm";
+  let DOUBAO_MODEL_ID = process.env.DOUBAO_MODEL_ID;
 
-  // Robust Auto-fix: Swap if they are misconfigured
-  // 1. If Model ID looks like the UUID key
-  if (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36 && !DOUBAO_MODEL_ID.startsWith("ep-")) {
+  // Swap only when both fields are clearly reversed; otherwise fail closed.
+  if (
+    DOUBAO_API_KEY?.startsWith("ep-") &&
+    DOUBAO_MODEL_ID?.includes("-") &&
+    DOUBAO_MODEL_ID.length === 36 &&
+    !DOUBAO_MODEL_ID.startsWith("ep-")
+  ) {
     console.log("Detected UUID in Model ID field, swapping with API Key...");
     const temp = DOUBAO_MODEL_ID;
-    DOUBAO_MODEL_ID = (DOUBAO_API_KEY.startsWith("ep-")) ? DOUBAO_API_KEY : "ep-m-20260305162457-9q2xm";
+    DOUBAO_MODEL_ID = DOUBAO_API_KEY;
     DOUBAO_API_KEY = temp;
-  }
-  // 2. If API Key looks like an endpoint ID
-  else if (DOUBAO_API_KEY.startsWith("ep-")) {
-    console.log("Detected Endpoint ID in API Key field, swapping...");
-    const temp = DOUBAO_API_KEY;
-    DOUBAO_API_KEY = (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36) ? DOUBAO_MODEL_ID : "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
-    DOUBAO_MODEL_ID = temp;
   }
 
   // Ensure endpoint is an absolute URL and use chat/completions if it's the default
@@ -270,8 +268,12 @@ async function startServer() {
     const cacheKey = generateCacheKey('simulation', theme, input, profile, memoryContext);
     const cached = getCache(cacheKey);
     if (cached) {
-      console.log(`[AI Simulation] Cache hit! Returning stored response.`);
-      return res.json(cached);
+      try {
+        console.log(`[AI Simulation] Cache hit! Returning stored response.`);
+        return res.json(validateSimulationResult(cached));
+      } catch (error) {
+        console.warn("[AI Simulation] Ignoring invalid cached response:", error);
+      }
     }
 
     // Check Preset Responses (Optimization)
@@ -279,7 +281,12 @@ async function startServer() {
       console.log(`[AI Simulation] Hit Preset Response for: ${input}`);
       // Simulate a small delay for realistic feel
       await new Promise(resolve => setTimeout(resolve, 800));
-      return res.json(PRESET_RESPONSES[input]);
+      try {
+        return res.json(validateSimulationResult(PRESET_RESPONSES[input]));
+      } catch (error) {
+        console.error("[AI Simulation] Preset response has invalid structure:", error);
+        return res.status(500).json({ error: "预设建议格式异常，请稍后重试" });
+      }
     }
 
     try {
@@ -337,22 +344,19 @@ async function startServer() {
 
       const content = await callDoubao(prompt, "你是一个专业的家庭守护 AI 顾问，只输出 JSON。", attempt === 0 ? 0.7 : 0.4);
 
-      let finalResult = safeJsonParse(content);
+      let parsedResult = safeJsonParse(content);
 
       // Fix for nested JSON string in 'response' field
-      if (finalResult && typeof finalResult.response === 'string') {
+      if (parsedResult && typeof parsedResult.response === 'string') {
         try {
-          finalResult = JSON.parse(finalResult.response);
+          parsedResult = JSON.parse(parsedResult.response);
         } catch (e) {
           console.error("Failed to parse nested JSON in response field:", e);
         }
       }
 
       // Validate structure
-      if (!finalResult || !finalResult.advice) {
-        console.error("AI response missing 'advice' field, using fallback");
-        throw new Error("AI response malformed");
-      }
+      const finalResult = validateSimulationResult(parsedResult);
 
       // Store in cache
       setCache(cacheKey, finalResult);
@@ -372,42 +376,8 @@ async function startServer() {
       res.json(finalResult);
     } catch (error: any) {
       console.error("Doubao Simulation Error:", error);
-      // Fallback: If AI fails, check if we have a preset match even if not exact string
-      const presetMatch = Object.keys(PRESET_RESPONSES).find(k => input.includes(k) || k.includes(input));
-      if (presetMatch) {
-        console.log(`[AI Simulation] Fallback to Preset Response for: ${presetMatch}`);
-        const resp = PRESET_RESPONSES[presetMatch];
-        if (supabase) {
-          const record = { theme, input, profile, result: resp, resonance_score: resp?.resonanceScore ?? null };
-          void supabase.from("consultations").insert(record);
-        }
-        return res.json(resp);
-      }
-      
-      // Ultimate Fallback: Return a generic valid structure so the UI doesn't break
-      console.log("[AI Simulation] Using Generic Fallback Response");
-      const genericFallback = {
-        advice: {
-          stateSummary: "系统暂时繁忙，但您的困扰我们收到了。1. 现状定性：当前可能面临一些不确定性；2. 核心痛点：需要更清晰的指引；3. 积极展望：稍作调整，事情会向好的方向发展。",
-          riskReminder: "建议稍后重试或咨询专业人士。",
-          risks: [],
-          actions: {
-            today: "深呼吸，暂时放下焦虑，做一件让自己放松的小事（如散步、听音乐）。",
-            thisWeek: "梳理当前的问题清单，按优先级排序，先解决最紧急的一项。",
-            thisMonth: "保持规律的作息，关注身心健康，为应对挑战积蓄能量。"
-          },
-          encouragement: "路虽远，行则将至；事虽难，做则必成。",
-          soulSignature: "静水流深"
-        },
-        resonanceScore: 80
-      };
-      if (supabase) {
-        const record = { theme, input, profile, result: genericFallback, resonance_score: genericFallback?.resonanceScore ?? null };
-        void supabase.from("consultations").insert(record);
-      }
-      return res.json(genericFallback);
-      
-      // res.status(500).json({ error: error.message || "生成模拟结果失败" });
+      const status = error?.message === "豆包 API 配置缺失" ? 503 : 502;
+      return res.status(status).json({ error: "生成模拟结果失败，请稍后重试" });
     }
   });
 
