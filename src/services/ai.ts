@@ -1,5 +1,6 @@
 import { SimulationResult, UserProfile, RecommendedQuestion } from "../types";
 import { MemoryService } from "./memory";
+import { getSimulationResultValidationError } from "./resultValidation";
 
 /**
  * Helper to call backend AI endpoints
@@ -89,6 +90,10 @@ export async function generateLifeSimulation(
         memoryContext,
         attempt
       });
+      const validationError = getSimulationResultValidationError(result);
+      if (validationError) {
+        throw new Error(`服务器返回的数据格式不完整: ${validationError}`);
+      }
       console.log("[Frontend AI Service] Simulation request success", result);
       return result;
     } catch (err) {
