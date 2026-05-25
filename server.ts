@@ -1,5 +1,4 @@
 import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import path from "path";
@@ -7,6 +6,7 @@ import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import crypto from "crypto";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { getSimulationResultValidationError, isValidSimulationResult } from "./src/services/resultValidation";
 
 dotenv.config();
 
@@ -52,7 +52,6 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(cors());
   app.use(express.json());
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -71,7 +70,7 @@ async function startServer() {
   });
 
   // Doubao API Configuration
-  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
+  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || "";
   let DOUBAO_ENDPOINT = process.env.DOUBAO_ENDPOINT || "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
   let DOUBAO_MODEL_ID = process.env.DOUBAO_MODEL_ID || "ep-m-20260305162457-9q2xm";
 
@@ -87,7 +86,7 @@ async function startServer() {
   else if (DOUBAO_API_KEY.startsWith("ep-")) {
     console.log("Detected Endpoint ID in API Key field, swapping...");
     const temp = DOUBAO_API_KEY;
-    DOUBAO_API_KEY = (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36) ? DOUBAO_MODEL_ID : "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
+    DOUBAO_API_KEY = (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36) ? DOUBAO_MODEL_ID : "";
     DOUBAO_MODEL_ID = temp;
   }
 
@@ -270,13 +269,21 @@ async function startServer() {
     const cacheKey = generateCacheKey('simulation', theme, input, profile, memoryContext);
     const cached = getCache(cacheKey);
     if (cached) {
-      console.log(`[AI Simulation] Cache hit! Returning stored response.`);
-      return res.json(cached);
+      if (isValidSimulationResult(cached)) {
+        console.log(`[AI Simulation] Cache hit! Returning stored response.`);
+        return res.json(cached);
+      }
+      console.warn(`[AI Simulation] Ignoring malformed cached response: ${getSimulationResultValidationError(cached)}`);
     }
 
     // Check Preset Responses (Optimization)
     if (PRESET_RESPONSES[input]) {
       console.log(`[AI Simulation] Hit Preset Response for: ${input}`);
+      const validationError = getSimulationResultValidationError(PRESET_RESPONSES[input]);
+      if (validationError) {
+        console.error(`[AI Simulation] Preset response is malformed: ${validationError}`);
+        return res.status(500).json({ error: "预设回答格式异常，请稍后重试" });
+      }
       // Simulate a small delay for realistic feel
       await new Promise(resolve => setTimeout(resolve, 800));
       return res.json(PRESET_RESPONSES[input]);
@@ -349,8 +356,9 @@ async function startServer() {
       }
 
       // Validate structure
-      if (!finalResult || !finalResult.advice) {
-        console.error("AI response missing 'advice' field, using fallback");
+      const validationError = getSimulationResultValidationError(finalResult);
+      if (validationError) {
+        console.error(`AI response malformed: ${validationError}`);
         throw new Error("AI response malformed");
       }
 
@@ -372,42 +380,7 @@ async function startServer() {
       res.json(finalResult);
     } catch (error: any) {
       console.error("Doubao Simulation Error:", error);
-      // Fallback: If AI fails, check if we have a preset match even if not exact string
-      const presetMatch = Object.keys(PRESET_RESPONSES).find(k => input.includes(k) || k.includes(input));
-      if (presetMatch) {
-        console.log(`[AI Simulation] Fallback to Preset Response for: ${presetMatch}`);
-        const resp = PRESET_RESPONSES[presetMatch];
-        if (supabase) {
-          const record = { theme, input, profile, result: resp, resonance_score: resp?.resonanceScore ?? null };
-          void supabase.from("consultations").insert(record);
-        }
-        return res.json(resp);
-      }
-      
-      // Ultimate Fallback: Return a generic valid structure so the UI doesn't break
-      console.log("[AI Simulation] Using Generic Fallback Response");
-      const genericFallback = {
-        advice: {
-          stateSummary: "系统暂时繁忙，但您的困扰我们收到了。1. 现状定性：当前可能面临一些不确定性；2. 核心痛点：需要更清晰的指引；3. 积极展望：稍作调整，事情会向好的方向发展。",
-          riskReminder: "建议稍后重试或咨询专业人士。",
-          risks: [],
-          actions: {
-            today: "深呼吸，暂时放下焦虑，做一件让自己放松的小事（如散步、听音乐）。",
-            thisWeek: "梳理当前的问题清单，按优先级排序，先解决最紧急的一项。",
-            thisMonth: "保持规律的作息，关注身心健康，为应对挑战积蓄能量。"
-          },
-          encouragement: "路虽远，行则将至；事虽难，做则必成。",
-          soulSignature: "静水流深"
-        },
-        resonanceScore: 80
-      };
-      if (supabase) {
-        const record = { theme, input, profile, result: genericFallback, resonance_score: genericFallback?.resonanceScore ?? null };
-        void supabase.from("consultations").insert(record);
-      }
-      return res.json(genericFallback);
-      
-      // res.status(500).json({ error: error.message || "生成模拟结果失败" });
+      return res.status(500).json({ error: error.message || "生成模拟结果失败" });
     }
   });
 
