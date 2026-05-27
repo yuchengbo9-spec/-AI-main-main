@@ -1,5 +1,6 @@
 import { SimulationResult, UserProfile, RecommendedQuestion } from "../types";
 import { MemoryService } from "./memory";
+import { assertValidSimulationResult } from "./resultValidation";
 
 /**
  * Helper to call backend AI endpoints
@@ -89,8 +90,9 @@ export async function generateLifeSimulation(
         memoryContext,
         attempt
       });
-      console.log("[Frontend AI Service] Simulation request success", result);
-      return result;
+      const validResult = assertValidSimulationResult(result, "Backend simulation");
+      console.log("[Frontend AI Service] Simulation request success", validResult);
+      return validResult;
     } catch (err) {
       console.error(`[Frontend AI Service] Simulation attempt ${attempt + 1} failed:`, err);
       lastError = err;
