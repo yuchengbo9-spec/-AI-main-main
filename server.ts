@@ -121,6 +121,13 @@ async function startServer() {
     }
   };
 
+  const normalizeSimulationResult = (result: any) => ({
+    ...result,
+    followUpQuestions: Array.isArray(result?.followUpQuestions) ? result.followUpQuestions : [],
+    resonanceScore: typeof result?.resonanceScore === "number" ? result.resonanceScore : 80,
+    soulSignature: result?.soulSignature || result?.advice?.soulSignature || "静水流深"
+  });
+
   // Common helper to call Doubao API
   async function callDoubao(prompt: string, systemInstruction: string, temperature = 0.7) {
     if (!DOUBAO_API_KEY || !DOUBAO_MODEL_ID) {
@@ -279,7 +286,7 @@ async function startServer() {
       console.log(`[AI Simulation] Hit Preset Response for: ${input}`);
       // Simulate a small delay for realistic feel
       await new Promise(resolve => setTimeout(resolve, 800));
-      return res.json(PRESET_RESPONSES[input]);
+      return res.json(normalizeSimulationResult(PRESET_RESPONSES[input]));
     }
 
     try {
@@ -353,6 +360,7 @@ async function startServer() {
         console.error("AI response missing 'advice' field, using fallback");
         throw new Error("AI response malformed");
       }
+      finalResult = normalizeSimulationResult(finalResult);
 
       // Store in cache
       setCache(cacheKey, finalResult);
@@ -376,7 +384,7 @@ async function startServer() {
       const presetMatch = Object.keys(PRESET_RESPONSES).find(k => input.includes(k) || k.includes(input));
       if (presetMatch) {
         console.log(`[AI Simulation] Fallback to Preset Response for: ${presetMatch}`);
-        const resp = PRESET_RESPONSES[presetMatch];
+        const resp = normalizeSimulationResult(PRESET_RESPONSES[presetMatch]);
         if (supabase) {
           const record = { theme, input, profile, result: resp, resonance_score: resp?.resonanceScore ?? null };
           void supabase.from("consultations").insert(record);
@@ -396,10 +404,14 @@ async function startServer() {
             thisWeek: "梳理当前的问题清单，按优先级排序，先解决最紧急的一项。",
             thisMonth: "保持规律的作息，关注身心健康，为应对挑战积蓄能量。"
           },
+          communicationTip: "先把担心告诉家人，请他们陪您一起梳理下一步。",
+          resourceSuggestion: "建议稍后重新生成，或联系可信的专业人士获得线下支持。",
           encouragement: "路虽远，行则将至；事虽难，做则必成。",
           soulSignature: "静水流深"
         },
-        resonanceScore: 80
+        followUpQuestions: [],
+        resonanceScore: 80,
+        soulSignature: "静水流深"
       };
       if (supabase) {
         const record = { theme, input, profile, result: genericFallback, resonance_score: genericFallback?.resonanceScore ?? null };
