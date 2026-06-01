@@ -40,6 +40,7 @@ import {
 import { generateLifeSimulation, generateRecommendedQuestions } from './services/ai';
 import { SimulationResult, LifeTheme, UserProfile, RecommendedQuestion, UserMemory } from './types';
 import { MemoryService } from './services/memory';
+import { isSimulationResult } from './services/resultValidation';
 import { useSpeech } from './hooks/useSpeech';
 import ProfilingForm from './components/ProfilingForm';
 import QuestionRecommender from './components/QuestionRecommender';
@@ -379,26 +380,19 @@ export default function App() {
 
         if (requestTimedOut) return;
         
-        if (!data || !data.advice) {
+        if (!isSimulationResult(data)) {
           throw new Error("AI 返回的数据格式不完整");
         }
 
-        const normalizedData: SimulationResult = {
-          ...data,
-          followUpQuestions: Array.isArray(data.followUpQuestions) ? data.followUpQuestions : [],
-          resonanceScore: typeof data.resonanceScore === 'number' ? data.resonanceScore : 85,
-          soulSignature: data.soulSignature || "心之所向，素履以往"
-        };
-
-        setResult(normalizedData);
+        setResult(data);
         
         // Update long-term memory
-        if (normalizedData.memoryUpdate) {
+        if (data.memoryUpdate) {
           try {
-            const psychRisk = normalizedData.advice.risks?.find(r => r.type === 'psychology');
+            const psychRisk = data.advice.risks?.find(r => r.type === 'psychology');
             MemoryService.updateFromSession(
-              normalizedData.memoryUpdate.newTags || [],
-              normalizedData.memoryUpdate.anxietyPoints || [],
+              data.memoryUpdate.newTags || [],
+              data.memoryUpdate.anxietyPoints || [],
               psychRisk?.score
             );
             setMemory(MemoryService.getMemory());

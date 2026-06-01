@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import crypto from "crypto";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { isSimulationResult } from "./src/services/resultValidation";
 
 dotenv.config();
 
@@ -71,7 +72,7 @@ async function startServer() {
   });
 
   // Doubao API Configuration
-  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
+  let DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || "";
   let DOUBAO_ENDPOINT = process.env.DOUBAO_ENDPOINT || "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
   let DOUBAO_MODEL_ID = process.env.DOUBAO_MODEL_ID || "ep-m-20260305162457-9q2xm";
 
@@ -87,7 +88,7 @@ async function startServer() {
   else if (DOUBAO_API_KEY.startsWith("ep-")) {
     console.log("Detected Endpoint ID in API Key field, swapping...");
     const temp = DOUBAO_API_KEY;
-    DOUBAO_API_KEY = (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36) ? DOUBAO_MODEL_ID : "11835137-c49e-4e5b-ba1f-cbcc3878dcce";
+    DOUBAO_API_KEY = (DOUBAO_MODEL_ID.includes("-") && DOUBAO_MODEL_ID.length === 36) ? DOUBAO_MODEL_ID : "";
     DOUBAO_MODEL_ID = temp;
   }
 
@@ -120,13 +121,6 @@ async function startServer() {
       throw e;
     }
   };
-
-  const normalizeSimulationResult = (result: any) => ({
-    ...result,
-    followUpQuestions: Array.isArray(result?.followUpQuestions) ? result.followUpQuestions : [],
-    resonanceScore: typeof result?.resonanceScore === "number" ? result.resonanceScore : 80,
-    soulSignature: result?.soulSignature || result?.advice?.soulSignature || "静水流深"
-  });
 
   // Common helper to call Doubao API
   async function callDoubao(prompt: string, systemInstruction: string, temperature = 0.7) {
@@ -277,8 +271,11 @@ async function startServer() {
     const cacheKey = generateCacheKey('simulation', theme, input, profile, memoryContext);
     const cached = getCache(cacheKey);
     if (cached) {
-      console.log(`[AI Simulation] Cache hit! Returning stored response.`);
-      return res.json(cached);
+      if (isSimulationResult(cached)) {
+        console.log(`[AI Simulation] Cache hit! Returning stored response.`);
+        return res.json(cached);
+      }
+      console.warn("[AI Simulation] Ignoring malformed cached response.");
     }
 
     // Check Preset Responses (Optimization)
@@ -286,7 +283,10 @@ async function startServer() {
       console.log(`[AI Simulation] Hit Preset Response for: ${input}`);
       // Simulate a small delay for realistic feel
       await new Promise(resolve => setTimeout(resolve, 800));
-      return res.json(normalizeSimulationResult(PRESET_RESPONSES[input]));
+      if (!isSimulationResult(PRESET_RESPONSES[input])) {
+        return res.status(500).json({ error: "预设回答格式异常" });
+      }
+      return res.json(PRESET_RESPONSES[input]);
     }
 
     try {
@@ -355,12 +355,10 @@ async function startServer() {
         }
       }
 
-      // Validate structure
-      if (!finalResult || !finalResult.advice) {
-        console.error("AI response missing 'advice' field, using fallback");
+      if (!isSimulationResult(finalResult)) {
+        console.error("AI response missing required result fields");
         throw new Error("AI response malformed");
       }
-      finalResult = normalizeSimulationResult(finalResult);
 
       // Store in cache
       setCache(cacheKey, finalResult);
@@ -380,46 +378,7 @@ async function startServer() {
       res.json(finalResult);
     } catch (error: any) {
       console.error("Doubao Simulation Error:", error);
-      // Fallback: If AI fails, check if we have a preset match even if not exact string
-      const presetMatch = Object.keys(PRESET_RESPONSES).find(k => input.includes(k) || k.includes(input));
-      if (presetMatch) {
-        console.log(`[AI Simulation] Fallback to Preset Response for: ${presetMatch}`);
-        const resp = normalizeSimulationResult(PRESET_RESPONSES[presetMatch]);
-        if (supabase) {
-          const record = { theme, input, profile, result: resp, resonance_score: resp?.resonanceScore ?? null };
-          void supabase.from("consultations").insert(record);
-        }
-        return res.json(resp);
-      }
-      
-      // Ultimate Fallback: Return a generic valid structure so the UI doesn't break
-      console.log("[AI Simulation] Using Generic Fallback Response");
-      const genericFallback = {
-        advice: {
-          stateSummary: "系统暂时繁忙，但您的困扰我们收到了。1. 现状定性：当前可能面临一些不确定性；2. 核心痛点：需要更清晰的指引；3. 积极展望：稍作调整，事情会向好的方向发展。",
-          riskReminder: "建议稍后重试或咨询专业人士。",
-          risks: [],
-          actions: {
-            today: "深呼吸，暂时放下焦虑，做一件让自己放松的小事（如散步、听音乐）。",
-            thisWeek: "梳理当前的问题清单，按优先级排序，先解决最紧急的一项。",
-            thisMonth: "保持规律的作息，关注身心健康，为应对挑战积蓄能量。"
-          },
-          communicationTip: "先把担心告诉家人，请他们陪您一起梳理下一步。",
-          resourceSuggestion: "建议稍后重新生成，或联系可信的专业人士获得线下支持。",
-          encouragement: "路虽远，行则将至；事虽难，做则必成。",
-          soulSignature: "静水流深"
-        },
-        followUpQuestions: [],
-        resonanceScore: 80,
-        soulSignature: "静水流深"
-      };
-      if (supabase) {
-        const record = { theme, input, profile, result: genericFallback, resonance_score: genericFallback?.resonanceScore ?? null };
-        void supabase.from("consultations").insert(record);
-      }
-      return res.json(genericFallback);
-      
-      // res.status(500).json({ error: error.message || "生成模拟结果失败" });
+      res.status(500).json({ error: error.message || "生成模拟结果失败" });
     }
   });
 

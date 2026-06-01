@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
+    "test": "tsx tests/resultValidation.test.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
