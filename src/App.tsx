@@ -40,6 +40,7 @@ import {
 import { generateLifeSimulation, generateRecommendedQuestions } from './services/ai';
 import { SimulationResult, LifeTheme, UserProfile, RecommendedQuestion, UserMemory } from './types';
 import { MemoryService } from './services/memory';
+import { isSimulationResult } from './services/resultValidation';
 import { useSpeech } from './hooks/useSpeech';
 import ProfilingForm from './components/ProfilingForm';
 import QuestionRecommender from './components/QuestionRecommender';
@@ -256,19 +257,19 @@ const MOCK_RESULT: SimulationResult = {
 };
 
 export default function App() {
-  const [step, setStep] = useState<AppStep>('result');
+  const [step, setStep] = useState<AppStep>('landing');
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [selectedTheme, setSelectedTheme] = useState<LifeTheme | null>('family');
+  const [selectedTheme, setSelectedTheme] = useState<LifeTheme | null>(null);
   const [recommendedQuestions, setRecommendedQuestions] = useState<RecommendedQuestion[]>([]);
   const [userInput, setUserInput] = useState('');
-  const [result, setResult] = useState<SimulationResult | null>(MOCK_RESULT);
+  const [result, setResult] = useState<SimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [memory, setMemory] = useState<UserMemory>(MemoryService.getMemory());
 
   const [questionPage, setQuestionPage] = useState(0);
-  const [isPaid, setIsPaid] = useState(true);
+  const [isPaid, setIsPaid] = useState(false);
   const { isListening, transcript, startListening, stopListening, isSpeaking, speak, stopSpeaking } = useSpeech();
 
   useEffect(() => {
@@ -358,14 +359,15 @@ export default function App() {
     
     setStep('loading');
     setError(null);
+    setResult(null);
     
-    // Set a safety timeout to inform user if it's taking too long
-    const timeoutId = setTimeout(() => {
-      console.warn("Simulation is taking longer than expected... Switching to Mock Mode for demo.");
-      // Fallback to Mock Result so user can see the UI
-      setResult(MOCK_RESULT);
-      setStep('result');
-    }, 8000); // Shorten timeout to 8s for better experience
+    let requestTimedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      requestTimedOut = true;
+      console.warn("Simulation is taking longer than expected.");
+      setError('建议生成耗时较长，请稍后重试。');
+      setStep('input');
+    }, 30000);
 
     const performRequest = async (attempt: number): Promise<void> => {
       try {
@@ -375,8 +377,10 @@ export default function App() {
         // Note: memory is accessed internally by generateLifeSimulation via MemoryService
         const data = await generateLifeSimulation(themeLabel, userInput, profile);
         console.log("[App] Simulation data received:", data);
+
+        if (requestTimedOut) return;
         
-        if (!data || !data.advice) {
+        if (!isSimulationResult(data)) {
           throw new Error("AI 返回的数据格式不完整");
         }
 
@@ -408,17 +412,15 @@ export default function App() {
           await new Promise(resolve => setTimeout(resolve, 1500));
           return performRequest(attempt + 1);
         }
-        
-        // If all retries fail, use Mock Result to show UI
-        console.warn("All simulation attempts failed. Using Mock Result.");
-        setResult(MOCK_RESULT);
-        setStep('result');
+        throw err;
       }
     };
 
     try {
       await performRequest(0);
     } catch (err: any) {
+      if (requestTimedOut) return;
+
       console.error("Simulation error:", err);
       const isNetworkError = err.message?.includes("Rpc failed") || err.message?.includes("xhr error") || err.message?.includes("fetch");
       const isParseError = err instanceof SyntaxError || err.message?.includes("JSON");
